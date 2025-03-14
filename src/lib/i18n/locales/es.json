@@ -1,0 +1,23 @@
+{
+    "common": {
+      "buttons": {
+        "search": "Buscar",
+        "schedule": "Agendar visita",
+        "login": "Iniciar sesión",
+        "register": "Registrarse"
+      },
+      "navbar": {
+        "buy": "Comprar",
+        "rent": "Alquilar",
+        "underConstruction": "En construcción",
+        "blog": "Blog",
+        "contact": "Contacto"
+      }
+    },
+    "home": {
+      "hero": {
+        "title": "Encuentra tu hogar ideal",
+        "subtitle": "Miles de propiedades a un clic de distancia"
+      }
+    }
+  }

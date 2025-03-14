@@ -1,0 +1,23 @@
+{
+    "common": {
+      "buttons": {
+        "search": "Search",
+        "schedule": "Schedule a visit",
+        "login": "Login",
+        "register": "Register"
+      },
+      "navbar": {
+        "buy": "Buy",
+        "rent": "Rent",
+        "underConstruction": "Under Construction",
+        "blog": "Blog",
+        "contact": "Contact"
+      }
+    },
+    "home": {
+      "hero": {
+        "title": "Find your ideal home",
+        "subtitle": "Thousands of properties just a click away"
+      }
+    }
+  }
