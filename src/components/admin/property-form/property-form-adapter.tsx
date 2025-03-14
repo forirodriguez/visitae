@@ -1,8 +1,11 @@
+// src/components/admin/property-form/property-form-adapter.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import PropertyForm from "@/components/admin/property-form/property-form";
-import { getPropertyById } from "@/lib/mock-data/properties";
+import { fetchPropertyById } from "@/lib/api/client/properties";
+import { propertyToFormData } from "@/utils/property-adapter";
+import { PropertyFormData } from "./property-form";
 
 interface PropertyFormAdapterProps {
   propertyId?: string;
@@ -14,29 +17,30 @@ export default function PropertyFormAdapter({
   const [isLoading, setIsLoading] = useState(!!propertyId);
   const [error, setError] = useState<string | null>(null);
   const [propertyExists, setPropertyExists] = useState(false);
+  const [propertyData, setPropertyData] = useState<PropertyFormData | null>(
+    null
+  );
 
   useEffect(() => {
-    // Solo verificar que la propiedad existe si tenemos un propertyId
+    // Solo cargar los datos si tenemos un propertyId
     if (propertyId) {
-      const checkPropertyExists = async () => {
+      const loadProperty = async () => {
         try {
-          const property = await getPropertyById(propertyId);
-
-          if (!property) {
-            setError("No se encontró la propiedad con el ID especificado");
-            setPropertyExists(false);
-          } else {
-            setPropertyExists(true);
-          }
+          const property = await fetchPropertyById(propertyId);
+          setPropertyExists(true);
+          // Convertir los datos de la propiedad al formato del formulario
+          const formData = propertyToFormData(property);
+          setPropertyData(formData);
         } catch (error) {
-          console.error("Error al verificar propiedad:", error);
+          console.error("Error al cargar propiedad:", error);
           setError("Error al cargar los datos de la propiedad");
+          setPropertyExists(false);
         } finally {
           setIsLoading(false);
         }
       };
 
-      checkPropertyExists();
+      loadProperty();
     }
   }, [propertyId]);
 
@@ -53,11 +57,11 @@ export default function PropertyFormAdapter({
 
   if (error) {
     return (
-      <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+      <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 dark:bg-red-950 dark:border-red-500">
         <div className="flex">
           <div>
-            <p className="text-lg text-red-700">Error</p>
-            <p className="text-red-600">{error}</p>
+            <p className="text-lg text-red-700 dark:text-red-400">Error</p>
+            <p className="text-red-600 dark:text-red-300">{error}</p>
           </div>
         </div>
       </div>
@@ -68,7 +72,7 @@ export default function PropertyFormAdapter({
   if (propertyId && !propertyExists) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-red-600 mb-2">
+        <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">
           Propiedad no encontrada
         </h2>
         <p className="mb-6">
@@ -78,6 +82,11 @@ export default function PropertyFormAdapter({
     );
   }
 
-  // PropertyForm ya carga internamente los datos cuando tiene un propertyId
-  return <PropertyForm propertyId={propertyId} />;
+  // Pasar los datos iniciales si estamos en modo edición
+  return (
+    <PropertyForm
+      propertyId={propertyId}
+      initialFormData={propertyData || undefined}
+    />
+  );
 }

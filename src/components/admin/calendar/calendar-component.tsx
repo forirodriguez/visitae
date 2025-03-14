@@ -1,223 +1,221 @@
-//src/components/admin/calendar/calendar-component.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  addMonths,
-  subMonths,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  format,
-  isSameMonth,
-  isToday,
-  isSameDay,
-  getDay,
-} from "date-fns";
+import { format, isToday } from "date-fns";
 import { es } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { Visit } from "@/types/visits";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
-interface CalendarComponentProps {
+interface CalendarProps {
   visits: Visit[];
-  onDateSelect: (date: Date) => void;
   selectedDate: Date;
-  className?: string;
+  onDateSelect: (date: Date) => void;
 }
 
 export default function CalendarComponent({
-  visits,
+  visits = [], // valor por defecto para evitar errores si visits es undefined
+  selectedDate = new Date(), // valor por defecto para evitar errores si selectedDate es undefined
   onDateSelect,
-  selectedDate,
-  className,
-}: CalendarComponentProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+}: CalendarProps) {
+  // Verificación de seguridad para evitar el error
+  if (!selectedDate) {
+    selectedDate = new Date(); // Asignar fecha actual si selectedDate es undefined
+  }
 
-  // Agrupar visitas por fecha
-  const visitsByDate = visits.reduce<Record<string, Visit[]>>((acc, visit) => {
-    const dateKey = format(visit.date, "yyyy-MM-dd");
-    if (!acc[dateKey]) {
-      acc[dateKey] = [];
-    }
-    acc[dateKey].push(visit);
-    return acc;
-  }, {});
+  // Obtener información del mes actual
+  const firstDayOfMonth = new Date(
+    selectedDate.getFullYear(),
+    selectedDate.getMonth(),
+    1
+  );
+  const lastDayOfMonth = new Date(
+    selectedDate.getFullYear(),
+    selectedDate.getMonth() + 1,
+    0
+  );
+  const daysInMonth = lastDayOfMonth.getDate();
+  const startDayOfWeek = firstDayOfMonth.getDay(); // 0 = domingo, 1 = lunes, etc.
 
-  // Obtener días del mes actual
-  const daysInMonth = () => {
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
-    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  // Ajustar para que la semana empiece en lunes (0 = lunes, 6 = domingo)
+  const adjustedStartDay = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
 
-    // Obtener el primer día del mes (0 = Domingo, 1 = Lunes, etc.)
-    let firstDay = getDay(monthStart);
-    // Ajustar para que la semana comience en lunes (0 = Lunes, 6 = Domingo)
-    firstDay = firstDay === 0 ? 6 : firstDay - 1;
+  const totalDaysToShow = daysInMonth + adjustedStartDay;
+  const totalWeeks = Math.ceil(totalDaysToShow / 7);
 
-    // Añadir días en blanco al principio para alinear correctamente
-    const blanks = Array(firstDay).fill(null);
-
-    return [...blanks, ...days];
+  // Navegación entre meses
+  const goToPreviousMonth = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setMonth(newDate.getMonth() - 1);
+    onDateSelect(newDate);
   };
 
-  // Navegación del calendario
-  const previousMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
-  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
-  const goToToday = () => setCurrentMonth(new Date());
+  const goToNextMonth = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setMonth(newDate.getMonth() + 1);
+    onDateSelect(newDate);
+  };
 
-  useEffect(() => {
-    // Si la fecha seleccionada no está en el mes actual, actualizar el mes
-    if (!isSameMonth(selectedDate, currentMonth)) {
-      setCurrentMonth(selectedDate);
-    }
-  }, [currentMonth, selectedDate]);
+  const goToToday = () => {
+    onDateSelect(new Date());
+  };
 
-  // Días de la semana (lunes a domingo)
-  const weekDays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+  // Calcular visitas por día
+  const getVisitsForDay = (day: number): Visit[] => {
+    if (!visits || !Array.isArray(visits)) return [];
+
+    const date = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      day
+    );
+
+    return visits.filter((visit) => {
+      if (!visit || !visit.date) return false;
+
+      const visitDate =
+        visit.date instanceof Date ? visit.date : new Date(visit.date);
+
+      return (
+        visitDate.getDate() === date.getDate() &&
+        visitDate.getMonth() === date.getMonth() &&
+        visitDate.getFullYear() === date.getFullYear()
+      );
+    });
+  };
+
+  // Dibujar el calendario
+  const days = Array.from({ length: totalWeeks * 7 }, (_, i) => {
+    const day = i - adjustedStartDay + 1;
+    const isCurrentMonth = day > 0 && day <= daysInMonth;
+    const date = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      day
+    );
+    const isSelected =
+      date.getDate() === selectedDate.getDate() &&
+      date.getMonth() === selectedDate.getMonth() &&
+      date.getFullYear() === selectedDate.getFullYear();
+    const dayVisits = isCurrentMonth ? getVisitsForDay(day) : [];
+
+    return {
+      day,
+      isCurrentMonth,
+      isTodayDate: isToday(date),
+      isSelected,
+      date,
+      visits: dayVisits,
+    };
+  });
+
+  // Nombres de los días de la semana (empezando en lunes)
+  const weekDays = ["L", "M", "X", "J", "V", "S", "D"];
 
   return (
-    <div className={cn("flex flex-col h-full", className)}>
-      {/* Encabezado del calendario */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center">
+    <div className="w-full">
+      {/* Cabecera del calendario */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-medium">
+          {format(selectedDate, "MMMM yyyy", { locale: es })}
+        </h3>
+        <div className="flex items-center gap-1">
           <Button
             variant="outline"
             size="icon"
-            onClick={previousMonth}
-            aria-label="Mes anterior"
-            className="h-8 w-8"
+            className="h-7 w-7"
+            onClick={goToPreviousMonth}
           >
             <ChevronLeft className="h-4 w-4" />
+            <span className="sr-only">Mes anterior</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={goToToday}
+          >
+            Hoy
           </Button>
           <Button
             variant="outline"
             size="icon"
-            onClick={nextMonth}
-            aria-label="Mes siguiente"
-            className="ml-1 h-8 w-8"
+            className="h-7 w-7"
+            onClick={goToNextMonth}
           >
             <ChevronRight className="h-4 w-4" />
+            <span className="sr-only">Mes siguiente</span>
           </Button>
-          <h2 className="text-lg font-semibold ml-3 capitalize">
-            {format(currentMonth, "MMMM yyyy", { locale: es })}
-          </h2>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={goToToday}
-          className="text-sm"
-        >
-          Hoy
-        </Button>
       </div>
 
-      {/* Cuadrícula del calendario */}
-      <div className="flex-1 min-h-0">
-        <ScrollArea className="h-full">
-          {/* Días de la semana */}
-          <div className="grid grid-cols-7 gap-px bg-muted">
-            {weekDays.map((day) => (
-              <div key={day} className="text-center py-2 text-sm font-medium">
-                {day}
-              </div>
-            ))}
-          </div>
+      {/* Calendario */}
+      <div className="w-full overflow-hidden rounded-lg border border-border bg-background shadow-sm">
+        {/* Días de la semana */}
+        <div className="grid grid-cols-7 border-b">
+          {weekDays.map((day, index) => (
+            <div
+              key={index}
+              className="h-10 text-center text-xs font-medium text-muted-foreground p-2"
+            >
+              {day}
+            </div>
+          ))}
+        </div>
 
-          {/* Días del mes */}
-          <div className="grid grid-cols-7 gap-px auto-rows-fr bg-muted">
-            {daysInMonth().map((day, index) => {
-              if (!day) {
-                return <div key={`blank-${index}`} className="bg-background" />;
-              }
-
-              const dateKey = format(day, "yyyy-MM-dd");
-              const visitsForDay = visitsByDate[dateKey] || [];
-              const isSelected = isSameDay(day, selectedDate);
-              const dayIsToday = isToday(day);
-              const isCurrentMonth = isSameMonth(day, currentMonth);
-
-              return (
-                <div
-                  key={dateKey}
+        {/* Días del mes */}
+        <div className="grid grid-cols-7 auto-rows-fr">
+          {days.map((day, index) => (
+            <div
+              key={index}
+              className={cn(
+                "relative border border-border/50 p-1 text-center calendar-day",
+                !day.isCurrentMonth && "text-muted-foreground opacity-50",
+                day.isSelected && "selected",
+                (index + 1) % 7 === 0 && "border-r",
+                index >= days.length - 7 && "border-b"
+              )}
+              onClick={() => {
+                if (day.isCurrentMonth) {
+                  onDateSelect(day.date);
+                }
+              }}
+            >
+              <div
+                className={cn(
+                  "flex h-full flex-col items-center justify-start pt-1",
+                  day.isCurrentMonth ? "cursor-pointer" : "pointer-events-none"
+                )}
+              >
+                <span
                   className={cn(
-                    "relative min-h-[80px] p-1 bg-background transition-colors",
-                    !isCurrentMonth && "text-muted-foreground opacity-50",
-                    dayIsToday && "bg-accent/10",
-                    isSelected && "ring-2 ring-primary ring-inset",
-                    "hover:bg-accent/10 cursor-pointer"
+                    "grid h-6 w-6 place-content-center rounded-full text-xs",
+                    day.isTodayDate &&
+                      "bg-primary text-primary-foreground font-medium",
+                    day.isSelected && !day.isTodayDate && "bg-muted font-medium"
                   )}
-                  onClick={() => onDateSelect(day)}
                 >
-                  {/* Número del día */}
-                  <div className="flex justify-between items-start">
-                    <span
-                      className={cn(
-                        "inline-flex items-center justify-center h-6 w-6 text-sm rounded-full",
-                        dayIsToday &&
-                          "bg-primary text-primary-foreground font-medium"
-                      )}
-                    >
-                      {format(day, "d")}
-                    </span>
-                  </div>
+                  {day.isCurrentMonth ? day.day : ""}
+                </span>
 
-                  {/* Indicador de visitas */}
-                  {visitsForDay.length > 0 && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="mt-2 flex items-center justify-center">
-                            <div
-                              className={cn(
-                                "text-xs font-medium px-1.5 py-0.5 rounded-full",
-                                "bg-primary/10 text-primary"
-                              )}
-                            >
-                              {visitsForDay.length}{" "}
-                              {visitsForDay.length === 1 ? "visita" : "visitas"}
-                            </div>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="text-xs">
-                            <p className="font-medium mb-1">
-                              Visitas programadas:
-                            </p>
-                            <ul className="space-y-1">
-                              {visitsForDay.slice(0, 3).map((visit) => (
-                                <li key={visit.id} className="flex gap-1">
-                                  <span className="font-medium">
-                                    {visit.time}
-                                  </span>
-                                  <span> - {visit.clientName}</span>
-                                </li>
-                              ))}
-                              {visitsForDay.length > 3 && (
-                                <li className="text-muted-foreground">
-                                  Y {visitsForDay.length - 3} más...
-                                </li>
-                              )}
-                            </ul>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </ScrollArea>
+                {/* Indicador de visitas */}
+                {day.visits && day.visits.length > 0 && (
+                  <span
+                    className={cn(
+                      "visits-indicator mt-1",
+                      day.visits.some((v) => v.type === "videollamada") &&
+                        "text-teal-600 bg-teal-100 dark:text-teal-400 dark:bg-teal-900/20",
+                      day.visits.every((v) => v.type === "presencial") &&
+                        "text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20"
+                    )}
+                  >
+                    {day.visits.length}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

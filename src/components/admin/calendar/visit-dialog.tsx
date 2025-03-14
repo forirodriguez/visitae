@@ -1,15 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Visit, VisitStatus, VisitType } from "@/types/visits";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import SimpleDatePicker from "@/components/admin/calendar/simple-day-picker";
 import {
   Dialog,
   DialogContent,
@@ -18,10 +14,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -29,175 +28,194 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { CalendarIcon, Clock } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+
 import { cn } from "@/lib/utils";
+import { Visit } from "@/types/visits";
+import { mockProperties } from "@/lib/mock-data/properties";
 
-// Datos de ejemplo - reemplazar con tus propios datos o lógica
-const mockAgents = [
-  { id: "agent1", name: "Carlos Rodríguez" },
-  { id: "agent2", name: "Ana Martínez" },
+// Esquema de validación para el formulario
+const formSchema = z.object({
+  propertyId: z.string({
+    required_error: "Selecciona una propiedad",
+  }),
+  date: z.date({
+    required_error: "Selecciona una fecha",
+  }),
+  time: z.string({
+    required_error: "Selecciona una hora",
+  }),
+  type: z.enum(["presencial", "videollamada"], {
+    required_error: "Selecciona un tipo de visita",
+  }),
+  status: z.enum(["pendiente", "confirmada", "cancelada", "completada"], {
+    required_error: "Selecciona un estado",
+  }),
+  clientName: z.string().min(3, {
+    message: "El nombre debe tener al menos 3 caracteres",
+  }),
+  clientEmail: z.string().email({
+    message: "Correo electrónico inválido",
+  }),
+  clientPhone: z.string().min(6, {
+    message: "Teléfono inválido",
+  }),
+  clientId: z.string().optional(),
+  agentId: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+// Opciones de horarios
+const timeOptions = [
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
+  "13:00",
+  "13:30",
+  "14:00",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+  "18:30",
+  "19:00",
+  "19:30",
 ];
 
-const mockProperties = [
-  {
-    id: "prop1",
-    title: "Apartamento de lujo con vistas al mar",
-    image: "/placeholder.svg?height=60&width=80&text=P1",
-  },
-  {
-    id: "prop2",
-    title: "Casa adosada con jardín privado",
-    image: "/placeholder.svg?height=60&width=80&text=P2",
-  },
-];
-
-interface VisitDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  selectedDate: Date;
-  existingVisit?: Visit | null;
-  onSave?: (visit: Visit) => void;
-}
-
+// Componente principal
 export default function VisitDialog({
   open,
   onOpenChange,
   selectedDate,
   existingVisit,
   onSave,
-}: VisitDialogProps) {
-  // Estado inicial para una nueva visita - usando useMemo para evitar recrearlo en cada render
-  const initialVisitState = useMemo(
-    () => ({
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedDate: Date;
+  existingVisit: Visit | null;
+  onSave?: (visit: Visit) => void;
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Por ahora usamos mockProperties hasta que implementemos React Query
+  const properties = mockProperties;
+  const isLoadingProperties = false;
+
+  // Crear formulario con valores por defecto
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
       propertyId: "",
-      propertyTitle: "",
-      propertyImage: "",
+      date: selectedDate || new Date(),
+      time: "10:00",
+      type: "presencial",
+      status: "pendiente",
       clientName: "",
       clientEmail: "",
       clientPhone: "",
-      date: selectedDate,
-      time: "10:00",
-      type: "presencial" as VisitType,
-      status: "pendiente" as VisitStatus,
-      agentId: mockAgents.length > 0 ? mockAgents[0].id : "",
+      clientId: "client-1", // Por defecto usamos el cliente 1 (se puede cambiar)
+      agentId: "agent-001", // Agente por defecto (se puede cambiar)
       notes: "",
-    }),
-    [selectedDate]
-  ); // Solo depende de selectedDate
+    },
+  });
 
-  // Estado del formulario
-  const [formData, setFormData] = useState<Omit<Visit, "id"> & { id?: string }>(
-    initialVisitState
-  );
-
-  // Estado para errores de validación
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-
-  // Actualizar el formulario cuando cambia la visita existente o fecha seleccionada
+  // Actualizar el formulario cuando cambia la visita existente o la fecha seleccionada
   useEffect(() => {
     if (existingVisit) {
-      setFormData({
-        ...existingVisit,
+      // Si estamos editando una visita existente
+      const visitDate =
+        existingVisit.date instanceof Date
+          ? existingVisit.date
+          : new Date(existingVisit.date);
+
+      form.reset({
+        propertyId: existingVisit.propertyId,
+        date: visitDate,
+        time: existingVisit.time,
+        type: existingVisit.type,
+        status: existingVisit.status,
+        clientName: existingVisit.clientName,
+        clientEmail: existingVisit.clientEmail,
+        clientPhone: existingVisit.clientPhone,
+        clientId: "client-1", // Por ahora usamos valores fijos
+        agentId: existingVisit.agentId || "agent-001",
+        notes: existingVisit.notes || "",
       });
     } else {
-      setFormData({
-        ...initialVisitState,
-        date: selectedDate,
+      // Si estamos creando una nueva visita
+      form.reset({
+        propertyId: "",
+        date: selectedDate || new Date(),
+        time: "10:00",
+        type: "presencial",
+        status: "pendiente",
+        clientName: "",
+        clientEmail: "",
+        clientPhone: "",
+        clientId: "client-1",
+        agentId: "agent-001",
+        notes: "",
       });
     }
-    setErrors({});
-  }, [existingVisit, selectedDate, open, initialVisitState]);
-
-  // Actualizar título y propiedades cuando cambia la selección de propiedad
-  useEffect(() => {
-    if (formData.propertyId) {
-      const selectedProperty = mockProperties.find(
-        (p) => p.id === formData.propertyId
-      );
-      if (selectedProperty) {
-        setFormData((prev) => ({
-          ...prev,
-          propertyTitle: selectedProperty.title,
-          propertyImage: selectedProperty.image,
-        }));
-      }
-    }
-  }, [formData.propertyId]);
-
-  // Manejar cambios en el formulario
-  const handleChange = (
-    field: keyof typeof formData,
-    value: string | Date | VisitType | VisitStatus
-  ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-
-    // Limpiar error para el campo modificado
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
-
-  // Validar el formulario
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.propertyId) {
-      newErrors.propertyId = "Selecciona una propiedad";
-    }
-
-    if (!formData.clientName) {
-      newErrors.clientName = "El nombre del cliente es obligatorio";
-    }
-
-    if (!formData.clientEmail) {
-      newErrors.clientEmail = "El email del cliente es obligatorio";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.clientEmail)) {
-      newErrors.clientEmail = "Email no válido";
-    }
-
-    if (!formData.clientPhone) {
-      newErrors.clientPhone = "El teléfono del cliente es obligatorio";
-    }
-
-    if (!formData.agentId) {
-      newErrors.agentId = "Selecciona un agente";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  }, [existingVisit, selectedDate, form]);
 
   // Manejar envío del formulario
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
 
     try {
-      // Generar ID para nuevas visitas
-      const visitToSave: Visit = {
-        ...(formData as Omit<Visit, "id">),
-        id: formData.id || `visit-${Date.now()}`,
-      };
+      // Obtener los datos de la propiedad seleccionada
+      const selectedProperty = mockProperties.find(
+        (p) => p.id === values.propertyId
+      );
 
-      // Llamar al callback onSave si existe
-      if (onSave) {
-        await onSave(visitToSave);
-      } else {
-        // Si no hay callback, simplemente cerrar el diálogo
-        console.log("Visita guardada (simulación):", visitToSave);
+      if (!selectedProperty) {
+        console.error("Propiedad no encontrada");
+        setIsSubmitting(false);
+        return;
       }
 
+      // Crear objeto de visita para pasar al controlador
+      const visitData: Visit = {
+        id: existingVisit?.id || `v${Date.now()}`, // Generar ID único si es nueva visita
+        propertyId: values.propertyId,
+        propertyTitle: selectedProperty.title,
+        propertyImage: selectedProperty.image,
+        clientName: values.clientName,
+        clientEmail: values.clientEmail,
+        clientPhone: values.clientPhone,
+        date: values.date,
+        time: values.time,
+        type: values.type,
+        status: values.status,
+        notes: values.notes || undefined,
+        agentId: values.agentId || "agent-001",
+      };
+
+      // Llamar al callback de guardado si existe
+      if (onSave) {
+        onSave(visitData);
+      }
+
+      // Cerrar el diálogo
       onOpenChange(false);
     } catch (error) {
       console.error("Error al guardar la visita:", error);
@@ -206,280 +224,323 @@ export default function VisitDialog({
     }
   };
 
-  // Opciones de horas (cada 30 minutos de 8:00 a 20:00)
-  const timeOptions = Array.from({ length: 25 }, (_, i) => {
-    const hour = Math.floor(i / 2) + 8;
-    const minute = (i % 2) * 30;
-    return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
-  });
+  // Información de clientes (hasta que tengamos una API de clientes)
+  const mockClients = [
+    {
+      id: "client-1",
+      name: "Carlos Rodríguez",
+      email: "carlos@example.com",
+      phone: "600123456",
+    },
+    {
+      id: "client-2",
+      name: "Laura Martínez",
+      email: "laura@example.com",
+      phone: "600789012",
+    },
+    {
+      id: "client-3",
+      name: "Miguel Sánchez",
+      email: "miguel@example.com",
+      phone: "600345678",
+    },
+  ];
+
+  // Detectar cuando se selecciona un cliente existente
+  const handleClientSelect = (clientId: string) => {
+    const selectedClient = mockClients.find((c) => c.id === clientId);
+    if (selectedClient) {
+      form.setValue("clientName", selectedClient.name);
+      form.setValue("clientEmail", selectedClient.email);
+      form.setValue("clientPhone", selectedClient.phone);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {existingVisit ? "Editar visita" : "Programar nueva visita"}
+            {existingVisit ? "Editar Visita" : "Programar Nueva Visita"}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Sección Propiedad */}
-          <div className="space-y-2">
-            <Label htmlFor="propertyId">
-              Propiedad <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              value={formData.propertyId}
-              onValueChange={(value) => handleChange("propertyId", value)}
-            >
-              <SelectTrigger
-                id="propertyId"
-                className={errors.propertyId ? "border-red-500" : ""}
-              >
-                <SelectValue placeholder="Selecciona una propiedad" />
-              </SelectTrigger>
-              <SelectContent>
-                {mockProperties.map((property) => (
-                  <SelectItem key={property.id} value={property.id}>
-                    {property.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.propertyId && (
-              <p className="text-sm text-red-500">{errors.propertyId}</p>
-            )}
-          </div>
-
-          {/* Sección Cliente */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Información del cliente
-            </h3>
-
-            <div className="space-y-2">
-              <Label htmlFor="clientName">
-                Nombre <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="clientName"
-                value={formData.clientName}
-                onChange={(e) => handleChange("clientName", e.target.value)}
-                className={errors.clientName ? "border-red-500" : ""}
-              />
-              {errors.clientName && (
-                <p className="text-sm text-red-500">{errors.clientName}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="clientEmail">
-                Email <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="clientEmail"
-                type="email"
-                value={formData.clientEmail}
-                onChange={(e) => handleChange("clientEmail", e.target.value)}
-                className={errors.clientEmail ? "border-red-500" : ""}
-              />
-              {errors.clientEmail && (
-                <p className="text-sm text-red-500">{errors.clientEmail}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="clientPhone">
-                Teléfono <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="clientPhone"
-                value={formData.clientPhone}
-                onChange={(e) => handleChange("clientPhone", e.target.value)}
-                className={errors.clientPhone ? "border-red-500" : ""}
-              />
-              {errors.clientPhone && (
-                <p className="text-sm text-red-500">{errors.clientPhone}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Sección Fecha y Hora */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Fecha y hora
-            </h3>
-
-            <div className="space-y-2">
-              <Label htmlFor="date">
-                Fecha <span className="text-red-500">*</span>
-              </Label>
-              <Popover
-                open={isDatePickerOpen}
-                onOpenChange={setIsDatePickerOpen}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.date && "text-muted-foreground"
-                    )}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Selección de Propiedad */}
+            <FormField
+              control={form.control}
+              name="propertyId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Propiedad</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={isLoadingProperties}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.date ? (
-                      format(formData.date, "PP", { locale: es })
-                    ) : (
-                      <span>Selecciona una fecha</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <SimpleDatePicker
-                    selected={formData.date}
-                    onSelect={(date: string | Date) => {
-                      handleChange("date", date);
-                      setIsDatePickerOpen(false);
-                    }}
-                    disabled={(date: Date) =>
-                      date < new Date(new Date().setHours(0, 0, 0, 0))
-                    }
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="time">
-                Hora <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={formData.time}
-                onValueChange={(value) => handleChange("time", value)}
-              >
-                <SelectTrigger id="time">
-                  <SelectValue placeholder="Selecciona una hora" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeOptions.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Sección Tipo de Visita */}
-          <div className="space-y-2">
-            <Label>
-              Tipo de visita <span className="text-red-500">*</span>
-            </Label>
-            <RadioGroup
-              value={formData.type}
-              onValueChange={(value: VisitType) => handleChange("type", value)}
-              className="flex flex-col space-y-1"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="presencial" id="presencial" />
-                <Label htmlFor="presencial" className="font-normal">
-                  Presencial
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="videollamada" id="videollamada" />
-                <Label htmlFor="videollamada" className="font-normal">
-                  Videollamada
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {/* Sección Agente */}
-          <div className="space-y-2">
-            <Label htmlFor="agentId">
-              Agente asignado <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              value={formData.agentId}
-              onValueChange={(value) => handleChange("agentId", value)}
-            >
-              <SelectTrigger
-                id="agentId"
-                className={errors.agentId ? "border-red-500" : ""}
-              >
-                <SelectValue placeholder="Selecciona un agente" />
-              </SelectTrigger>
-              <SelectContent>
-                {mockAgents.map((agent) => (
-                  <SelectItem key={agent.id} value={agent.id}>
-                    {agent.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.agentId && (
-              <p className="text-sm text-red-500">{errors.agentId}</p>
-            )}
-          </div>
-
-          {/* Sección Estado (solo para edición) */}
-          {existingVisit && (
-            <div className="space-y-2">
-              <Label htmlFor="status">Estado</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: VisitStatus) =>
-                  handleChange("status", value)
-                }
-              >
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Selecciona un estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="confirmada">Confirmada</SelectItem>
-                  <SelectItem value="completada">Completada</SelectItem>
-                  <SelectItem value="cancelada">Cancelada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Notas */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notas (opcional)</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes || ""}
-              onChange={(e) => handleChange("notes", e.target.value)}
-              placeholder="Añade información adicional sobre la visita..."
-              className="min-h-[100px]"
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una propiedad" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {properties.map((property) => (
+                        <SelectItem key={property.id} value={property.id}>
+                          {property.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
-            >
-              {isSubmitting
-                ? "Guardando..."
-                : existingVisit
-                  ? "Actualizar"
-                  : "Programar visita"}
-            </Button>
-          </DialogFooter>
-        </form>
+            {/* Fecha y Hora */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Fecha</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP", { locale: es })
+                            ) : (
+                              <span>Selecciona una fecha</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecciona hora" />
+                          <Clock className="h-4 w-4 opacity-50" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {timeOptions.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Tipo de Visita y Estado */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Visita</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="presencial">Presencial</SelectItem>
+                        <SelectItem value="videollamada">
+                          Videollamada
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estado</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona estado" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="pendiente">Pendiente</SelectItem>
+                        <SelectItem value="confirmada">Confirmada</SelectItem>
+                        <SelectItem value="cancelada">Cancelada</SelectItem>
+                        <SelectItem value="completada">Completada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Selección de Cliente Existente */}
+            <FormField
+              control={form.control}
+              name="clientId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cliente</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      handleClientSelect(value);
+                    }}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona cliente o crea uno nuevo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {mockClients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Datos del Cliente */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="clientName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre del Cliente</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="clientEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="clientPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono</FormLabel>
+                    <FormControl>
+                      <Input type="tel" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Notas */}
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notas</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Información adicional sobre la visita"
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting
+                  ? "Guardando..."
+                  : existingVisit
+                    ? "Actualizar Visita"
+                    : "Programar Visita"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

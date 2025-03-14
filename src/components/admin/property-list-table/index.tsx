@@ -1,3 +1,4 @@
+// src/components/admin/property-list-table/index.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -47,16 +48,16 @@ import {
   Star,
 } from "lucide-react";
 import PropertyStatusBadge from "@/components/admin/property-status-badge";
+import { DeletePropertyModal } from "@/components/admin/property-list-table/delete-property-modal";
 import { Property, PropertyFilter } from "@/types/property";
-import {
-  getAllProperties,
-  getFilteredProperties,
-} from "@/lib/mock-data/properties";
+import { fetchProperties, deleteProperty } from "@/lib/api/client/properties";
+import { toast } from "sonner";
 
 export default function PropertyListTable() {
   const router = useRouter();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,88 +72,93 @@ export default function PropertyListTable() {
     featured: "all" as string,
   });
 
+  // Estado para modales de eliminación
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+  const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(
+    null
+  );
+
   // Obtener todos los tipos de propiedades únicos para el filtro
   const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
 
+  // Cargar propiedades
+  const loadProperties = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Convertir los filtros al formato esperado por la API
+      const propertyFilter: PropertyFilter = {
+        type:
+          filters.type !== "all"
+            ? (filters.type as "venta" | "alquiler")
+            : undefined,
+        minPrice: filters.priceMin ? parseInt(filters.priceMin) : undefined,
+        maxPrice: filters.priceMax ? parseInt(filters.priceMax) : undefined,
+        minBedrooms:
+          filters.beds !== "all" ? parseInt(filters.beds) : undefined,
+        keyword: searchQuery || undefined,
+        status: undefined,
+        featured: false,
+      };
+
+      // Obtener propiedades del endpoint con los filtros aplicados
+      const data = await fetchProperties(propertyFilter);
+
+      // Aplicar filtros adicionales del lado del cliente si es necesario
+      // (para los filtros que no soporta directamente la API)
+      let filteredData = [...data];
+
+      if (filters.status !== "all") {
+        filteredData = filteredData.filter((p) => p.status === filters.status);
+      }
+
+      if (filters.featured !== "all") {
+        filteredData = filteredData.filter((p) =>
+          filters.featured === "featured" ? p.isFeatured : !p.isFeatured
+        );
+      }
+
+      if (filters.propertyType !== "all") {
+        filteredData = filteredData.filter(
+          (p) => p.propertyType === filters.propertyType
+        );
+      }
+
+      setProperties(filteredData);
+
+      // Extraer tipos de propiedades únicos
+      const types = Array.from(
+        new Set(data.map((p) => p.propertyType).filter(Boolean))
+      );
+      setPropertyTypes(types);
+
+      // Resetear a la primera página cuando cambian los filtros
+      setCurrentPage(1);
+    } catch (error) {
+      console.error("Error al cargar propiedades:", error);
+      setError("No se pudieron cargar las propiedades. Intente nuevamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Cargar propiedades al iniciar
   useEffect(() => {
-    const loadProperties = async () => {
-      setLoading(true);
-      try {
-        const data = await getAllProperties();
-        setProperties(data);
-
-        // Extraer tipos de propiedades únicos
-        const types = Array.from(
-          new Set(data.map((p) => p.propertyType).filter(Boolean))
-        );
-        setPropertyTypes(types);
-      } catch (error) {
-        console.error("Error al cargar propiedades:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadProperties();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Aplicar filtros
+  // Aplicar filtros cuando cambian
   useEffect(() => {
-    const applyFilters = async () => {
-      setLoading(true);
-      try {
-        // Convertir los filtros al formato esperado por getFilteredProperties
-        const propertyFilter: PropertyFilter = {
-          type:
-            filters.type !== "all"
-              ? (filters.type as "venta" | "alquiler")
-              : undefined,
-          minPrice: filters.priceMin ? parseInt(filters.priceMin) : undefined,
-          maxPrice: filters.priceMax ? parseInt(filters.priceMax) : undefined,
-          minBedrooms:
-            filters.beds !== "all" ? parseInt(filters.beds) : undefined,
-          keyword: searchQuery || undefined,
-        };
-
-        let filteredData = await getFilteredProperties(propertyFilter);
-
-        // Aplicar filtros adicionales que no están en getFilteredProperties
-        if (filters.status !== "all") {
-          filteredData = filteredData.filter(
-            (p) => p.status === filters.status
-          );
-        }
-
-        if (filters.propertyType !== "all") {
-          filteredData = filteredData.filter(
-            (p) => p.propertyType === filters.propertyType
-          );
-        }
-
-        if (filters.featured !== "all") {
-          filteredData = filteredData.filter((p) =>
-            filters.featured === "featured" ? p.isFeatured : !p.isFeatured
-          );
-        }
-
-        setProperties(filteredData);
-
-        // Resetear a la primera página cuando cambian los filtros
-        setCurrentPage(1);
-      } catch (error) {
-        console.error("Error al aplicar filtros:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     // Debounce para evitar muchas llamadas
     const timeoutId = setTimeout(() => {
-      applyFilters();
-    }, 300);
+      loadProperties();
+    }, 500);
 
     return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, searchQuery]);
 
   const itemsPerPage = 5;
@@ -182,11 +188,63 @@ export default function PropertyListTable() {
   };
 
   // Acciones en lote
-  const handleBulkAction = (action: string) => {
-    console.log(`Acción ${action} aplicada a:`, selectedProperties);
-    // Aquí iría la lógica para aplicar la acción
-    // Después de aplicar la acción, limpiar la selección
-    setSelectedProperties([]);
+  const handleBulkAction = async (action: string) => {
+    if (!selectedProperties.length) return;
+
+    if (action === "delete") {
+      // Mostrar modal de confirmación para eliminar en lote
+      setBulkDeleteModalOpen(true);
+    } else if (
+      action === "publish" ||
+      action === "unpublish" ||
+      action === "feature"
+    ) {
+      // Implementar otras acciones en lote según sea necesario
+      toast.info("Esta función estará disponible próximamente");
+    }
+  };
+
+  // Ejecutar eliminación en lote después de confirmar
+  const confirmBulkDelete = async () => {
+    try {
+      // Eliminar propiedades en serie
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const id of selectedProperties) {
+        try {
+          await deleteProperty(id);
+          successCount++;
+        } catch (err) {
+          errorCount++;
+          console.error(`Error eliminando propiedad ${id}:`, err);
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(
+          `${successCount} propiedad${successCount !== 1 ? "es" : ""} eliminada${successCount !== 1 ? "s" : ""} correctamente`
+        );
+      }
+
+      if (errorCount > 0) {
+        toast.error(
+          `No se pudieron eliminar ${errorCount} propiedad${errorCount !== 1 ? "es" : ""}`
+        );
+      }
+
+      // Recargar propiedades
+      loadProperties();
+
+      // Después de aplicar la acción, limpiar la selección
+      setSelectedProperties([]);
+
+      // Cerrar el modal
+      setBulkDeleteModalOpen(false);
+    } catch (error) {
+      console.error("Error al eliminar propiedades:", error);
+      toast.error("Error al eliminar las propiedades. Intente nuevamente.");
+    }
   };
 
   // Resetear filtros
@@ -215,6 +273,33 @@ export default function PropertyListTable() {
     // Obtener el locale actual de la URL
     const locale = window.location.pathname.split("/")[1];
     router.push(`/${locale}/dashboard/properties/${propertyId}/edit`);
+  };
+
+  // Mostrar modal de confirmación de eliminación
+  const openDeleteModal = (property: Property) => {
+    setPropertyToDelete(property);
+    setDeleteModalOpen(true);
+  };
+
+  // Manejar eliminación de una propiedad después de confirmar
+  const confirmDeleteProperty = async () => {
+    if (!propertyToDelete) return;
+
+    try {
+      await deleteProperty(propertyToDelete.id);
+      toast.success(
+        `Propiedad "${propertyToDelete.title}" eliminada correctamente`
+      );
+
+      // Recargar propiedades
+      loadProperties();
+
+      // Cerrar el modal
+      setDeleteModalOpen(false);
+    } catch (error) {
+      console.error("Error al eliminar propiedad:", error);
+      toast.error("Error al eliminar la propiedad. Intente nuevamente.");
+    }
   };
 
   return (
@@ -430,6 +515,20 @@ export default function PropertyListTable() {
         </div>
       )}
 
+      {/* Mensaje de error */}
+      {error && (
+        <div className="p-4 border border-red-300 bg-red-50 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-800 dark:text-red-400">
+          {error}
+          <Button
+            variant="link"
+            onClick={loadProperties}
+            className="ml-2 text-red-600 dark:text-red-400"
+          >
+            Reintentar
+          </Button>
+        </div>
+      )}
+
       {/* Tabla de propiedades */}
       <div className="rounded-md border">
         <Table>
@@ -456,11 +555,24 @@ export default function PropertyListTable() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
-                  Cargando propiedades...
-                </TableCell>
-              </TableRow>
+              Array(3)
+                .fill(0)
+                .map((_, index) => (
+                  <TableRow key={`skeleton-${index}`}>
+                    <TableCell colSpan={8} className="py-4">
+                      <div className="flex space-x-4 items-center">
+                        <div className="h-4 w-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+                        <div className="h-12 w-16 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+                        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+                        <div className="hidden md:block h-4 w-32 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+                        <div className="hidden md:block h-4 w-24 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+                        <div className="hidden md:block h-4 w-28 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+                        <div className="h-5 w-20 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+                        <div className="ml-auto h-8 w-8 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
             ) : paginatedProperties.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-24 text-center">
@@ -565,7 +677,10 @@ export default function PropertyListTable() {
                           <span>Editar</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600 dark:text-red-400">
+                        <DropdownMenuItem
+                          onClick={() => openDeleteModal(property)}
+                          className="text-red-600 dark:text-red-400"
+                        >
                           <Trash2 className="mr-2 h-4 w-4" />
                           <span>Eliminar</span>
                         </DropdownMenuItem>
@@ -627,6 +742,25 @@ export default function PropertyListTable() {
           </Button>
         </div>
       </div>
+
+      {/* Modal de confirmación para eliminar una propiedad */}
+      <DeletePropertyModal
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onConfirm={confirmDeleteProperty}
+        title={propertyToDelete?.title || ""}
+        isBulkDelete={false}
+      />
+
+      {/* Modal de confirmación para eliminar múltiples propiedades */}
+      <DeletePropertyModal
+        open={bulkDeleteModalOpen}
+        onOpenChange={setBulkDeleteModalOpen}
+        onConfirm={confirmBulkDelete}
+        title=""
+        isBulkDelete={true}
+        count={selectedProperties.length}
+      />
     </div>
   );
 }

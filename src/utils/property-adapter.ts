@@ -1,12 +1,19 @@
+// src/utils/property-adapter.ts
 import { PropertyFormData } from "@/components/admin/property-form/property-form";
 import { Property } from "@/types/property";
 
-export function formDataToProperty(formData: PropertyFormData): Property {
-  // Generar un ID único para la propiedad (en caso de ser nueva)
-  const id = Math.random().toString(36).substring(2, 15);
+/**
+ * Convierte los datos del formulario al formato de Property para la API
+ */
+export function formDataToProperty(
+  formData: PropertyFormData
+): Omit<Property, "id"> {
+  // Seleccionar la imagen principal o la primera disponible
+  const mainImage =
+    formData.images.find((img) => img.isPrimary)?.url ||
+    (formData.images.length > 0 ? formData.images[0].url : "/placeholder.svg");
 
   return {
-    id: id,
     title: formData.title,
     description: formData.description,
     price: parseFloat(formData.price) || 0,
@@ -17,16 +24,83 @@ export function formDataToProperty(formData: PropertyFormData): Property {
     bedrooms: parseInt(formData.bedrooms) || 0,
     bathrooms: parseInt(formData.bathrooms) || 0,
     area: parseInt(formData.squareMetersBuilt) || 0,
-    image:
-      formData.images.length > 0
-        ? formData.images.find((img) => img.isPrimary)?.url ||
-          formData.images[0].url
-        : "/placeholder.svg",
+    image: mainImage,
     features: formData.features,
     isNew:
       new Date(formData.publishDate).getTime() >
       Date.now() - 30 * 24 * 60 * 60 * 1000, // Considera nueva si se publicó en los últimos 30 días
     isFeatured: formData.isFeatured,
     status: formData.status,
+  };
+}
+
+/**
+ * Versión para previsualización - incluye un ID temporal
+ * Esta función se usa solo para la vista previa, no para la API
+ */
+export function formDataToPropertyPreview(
+  formData: PropertyFormData
+): Property {
+  return {
+    id: "preview-id", // ID temporal para previsualización
+    ...formDataToProperty(formData),
+  };
+}
+
+/**
+ * Convierte una propiedad al formato del formulario para edición
+ */
+export function propertyToFormData(property: Property): PropertyFormData {
+  // Extraer neighborhood y city de location
+  let neighborhood = "";
+  let city = property.location;
+
+  if (property.location.includes(",")) {
+    const parts = property.location.split(",");
+    neighborhood = parts[0].trim();
+    city = parts.slice(1).join(",").trim();
+  }
+
+  return {
+    title: property.title,
+    description: property.description,
+    price: property.price.toString(),
+    operationType: property.type as "venta" | "alquiler",
+    propertyType: property.propertyType,
+
+    address: property.address,
+    latitude: "", // Estos campos no están en Property, habría que extenderlo
+    longitude: "", // o guardarlos como metadatos
+    neighborhood: neighborhood,
+    city: city,
+    postalCode: "",
+
+    bedrooms: property.bedrooms.toString(),
+    bathrooms: property.bathrooms.toString(),
+    squareMetersBuilt: property.area.toString(),
+    squareMetersUsable: "",
+    constructionYear: "",
+    parkingSpaces: "",
+    features: property.features,
+    energyRating: "",
+
+    images: [
+      {
+        id: "main",
+        url: property.image,
+        isPrimary: true,
+        order: 0,
+      },
+    ],
+
+    status: property.status as
+      | "borrador"
+      | "publicada"
+      | "destacada"
+      | "inactiva",
+    isFeatured: property.isFeatured || false,
+    publishDate: new Date().toISOString().split("T")[0],
+    visibility: "publica",
+    tags: [],
   };
 }

@@ -1,3 +1,4 @@
+//src/components/admin/property-form/property-form.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -35,8 +36,12 @@ import FeaturesTab from "./features-tab";
 import GalleryTab from "./gallery-tab";
 import AdvancedTab from "@/components/admin/property-form/advance-tab";
 import PropertyCard from "@/components/properties/PropertyCard-preview";
-import { formDataToProperty } from "@/utils/property-adapter";
+import {
+  formDataToProperty,
+  formDataToPropertyPreview,
+} from "@/utils/property-adapter";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { createProperty, updateProperty } from "@/lib/api/client/properties";
 
 // Tipos para la propiedad
 export interface PropertyFormData {
@@ -80,92 +85,6 @@ export interface PropertyFormData {
   visibility: "publica" | "privada";
   tags: string[];
 }
-
-// Valores iniciales para el formulario
-const initialFormData: PropertyFormData = {
-  title: "",
-  description: "",
-  price: "",
-  operationType: "venta",
-  propertyType: "",
-
-  address: "",
-  latitude: "",
-  longitude: "",
-  neighborhood: "",
-  city: "",
-  postalCode: "",
-
-  bedrooms: "",
-  bathrooms: "",
-  squareMetersBuilt: "",
-  squareMetersUsable: "",
-  constructionYear: "",
-  parkingSpaces: "",
-  features: [],
-  energyRating: "",
-
-  images: [],
-
-  status: "borrador",
-  isFeatured: false,
-  publishDate: new Date().toISOString().split("T")[0],
-  visibility: "publica",
-  tags: [],
-};
-
-// Datos de ejemplo para edición
-const samplePropertyData: PropertyFormData = {
-  title: "Apartamento de lujo con vistas al mar",
-  description:
-    "Espectacular apartamento con vistas panorámicas al mar Mediterráneo. Acabados de alta calidad, amplias estancias y terraza privada. Ubicado en una de las mejores zonas de Málaga, a pocos minutos de la playa y de todos los servicios.",
-  price: "450000",
-  operationType: "venta",
-  propertyType: "apartamento",
-
-  address: "Paseo Marítimo 123, Málaga",
-  latitude: "36.7213",
-  longitude: "-4.4214",
-  neighborhood: "Paseo Marítimo",
-  city: "Málaga",
-  postalCode: "29016",
-
-  bedrooms: "3",
-  bathrooms: "2",
-  squareMetersBuilt: "120",
-  squareMetersUsable: "110",
-  constructionYear: "2018",
-  parkingSpaces: "1",
-  features: ["terraza", "piscina", "ascensor", "seguridad"],
-  energyRating: "A",
-
-  images: [
-    {
-      id: "img1",
-      url: "/placeholder.svg?height=300&width=400&text=Imagen+1",
-      isPrimary: true,
-      order: 0,
-    },
-    {
-      id: "img2",
-      url: "/placeholder.svg?height=300&width=400&text=Imagen+2",
-      isPrimary: false,
-      order: 1,
-    },
-    {
-      id: "img3",
-      url: "/placeholder.svg?height=300&width=400&text=Imagen+3",
-      isPrimary: false,
-      order: 2,
-    },
-  ],
-
-  status: "publicada",
-  isFeatured: true,
-  publishDate: "2023-10-15",
-  visibility: "publica",
-  tags: ["lujo", "vistas", "nuevo"],
-};
 
 // Componente de pestañas del formulario con marcas de completado
 function PropertyFormTabs({
@@ -215,13 +134,49 @@ function PropertyFormTabs({
 
 interface PropertyFormProps {
   propertyId?: string;
+  initialFormData?: PropertyFormData;
 }
 
-export default function PropertyForm({ propertyId }: PropertyFormProps) {
+export default function PropertyForm({
+  propertyId,
+  initialFormData,
+}: PropertyFormProps) {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState("basic-info");
-  const [formData, setFormData] = useState<PropertyFormData>(initialFormData);
+  const [formData, setFormData] = useState<PropertyFormData>(
+    initialFormData || {
+      title: "",
+      description: "",
+      price: "",
+      operationType: "venta",
+      propertyType: "",
+
+      address: "",
+      latitude: "",
+      longitude: "",
+      neighborhood: "",
+      city: "",
+      postalCode: "",
+
+      bedrooms: "",
+      bathrooms: "",
+      squareMetersBuilt: "",
+      squareMetersUsable: "",
+      constructionYear: "",
+      parkingSpaces: "",
+      features: [],
+      energyRating: "",
+
+      images: [],
+
+      status: "borrador",
+      isFeatured: false,
+      publishDate: new Date().toISOString().split("T")[0],
+      visibility: "publica",
+      tags: [],
+    }
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
@@ -230,15 +185,10 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
     {}
   );
 
-  // Cargar datos de la propiedad si estamos en modo edición
+  // Verificar completitud de pestañas cuando cambia el formulario
   useEffect(() => {
-    if (propertyId) {
-      // En un caso real, aquí haríamos una llamada a la API para obtener los datos
-      // Por ahora, usamos datos de ejemplo
-      setFormData(samplePropertyData);
-      checkTabsCompletion(samplePropertyData);
-    }
-  }, [propertyId]);
+    checkTabsCompletion(formData);
+  }, [formData]);
 
   // Manejar cambios en el formulario
   const handleChange = (
@@ -412,42 +362,35 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
     setIsLoading(true);
 
     try {
-      // Simulamos una llamada a la API
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // En un caso real enviaríamos los datos a la API
-      // Por ahora, guardamos en localStorage para demostrar
-      const savedProperties = JSON.parse(
-        localStorage.getItem("savedProperties") || "[]"
-      ) as Array<PropertyFormData & { id: string }>;
-      const propertyToSave = {
+      // Establecer el estado como borrador
+      const dataToSave = {
         ...formData,
-        id: propertyId || `prop_${new Date().getTime()}`,
         status: "borrador" as const,
       };
 
-      // Si existe, actualizamos, si no, añadimos
-      const existingIndex = savedProperties.findIndex(
-        (p) => p.id === propertyToSave.id
-      );
-      if (existingIndex >= 0) {
-        savedProperties[existingIndex] = propertyToSave;
+      // Convertir los datos del formulario al formato esperado por la API
+      const propertyData = formDataToProperty(dataToSave);
+
+      // Usar la función apropiada según si es nueva o existente
+      if (propertyId) {
+        await updateProperty(propertyId, propertyData);
+        toast.success("Borrador actualizado", {
+          description:
+            "La propiedad se ha actualizado como borrador correctamente.",
+        });
       } else {
-        savedProperties.push(propertyToSave);
+        await createProperty(propertyData);
+        toast.success("Borrador guardado", {
+          description:
+            "La propiedad se ha guardado como borrador correctamente.",
+        });
       }
 
-      localStorage.setItem("savedProperties", JSON.stringify(savedProperties));
-
-      toast.success("Borrador guardado", {
-        description: "La propiedad se ha guardado como borrador correctamente.",
-      });
-
-      // En un caso real, redirigir a la lista de propiedades o a la vista de detalle
-      if (!propertyId) {
-        router.push("/admin/properties");
-      }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // Obtener el locale actual de la URL para la redirección
+      const locale = window.location.pathname.split("/")[1];
+      router.push(`/${locale}/dashboard/properties`);
     } catch (error) {
+      console.error("Error al guardar propiedad:", error);
       toast.error("Error al guardar", {
         description:
           "Ha ocurrido un error al guardar el borrador. Inténtalo de nuevo.",
@@ -488,39 +431,34 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
     setIsLoading(true);
 
     try {
-      // Simulamos una llamada a la API
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Guardamos en localStorage como propiedad publicada
-      const savedProperties = JSON.parse(
-        localStorage.getItem("savedProperties") || "[]"
-      ) as Array<PropertyFormData & { id: string }>;
-      const propertyToSave = {
+      // Establecer el estado como publicada
+      const dataToPublish = {
         ...formData,
-        id: propertyId || `prop_${new Date().getTime()}`,
         status: "publicada" as const,
       };
 
-      // Si existe, actualizamos, si no, añadimos
-      const existingIndex = savedProperties.findIndex(
-        (p) => p.id === propertyToSave.id
-      );
-      if (existingIndex >= 0) {
-        savedProperties[existingIndex] = propertyToSave;
+      // Convertir los datos del formulario al formato esperado por la API
+      const propertyData = formDataToProperty(dataToPublish);
+
+      // Usar la función apropiada según si es nueva o existente
+      if (propertyId) {
+        await updateProperty(propertyId, propertyData);
+        toast.success("Propiedad actualizada y publicada", {
+          description:
+            "La propiedad se ha actualizado y publicado correctamente.",
+        });
       } else {
-        savedProperties.push(propertyToSave);
+        await createProperty(propertyData);
+        toast.success("Propiedad publicada", {
+          description: "La propiedad se ha creado y publicado correctamente.",
+        });
       }
 
-      localStorage.setItem("savedProperties", JSON.stringify(savedProperties));
-
-      toast.success("Propiedad publicada", {
-        description: "La propiedad se ha publicado correctamente.",
-      });
-
-      // En un caso real, redirigir a la lista de propiedades o a la vista de detalle
-      router.push("/admin/properties");
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // Obtener el locale actual de la URL para la redirección
+      const locale = window.location.pathname.split("/")[1];
+      router.push(`/${locale}/dashboard/properties`);
     } catch (error) {
+      console.error("Error al publicar propiedad:", error);
       toast.error("Error al publicar", {
         description:
           "Ha ocurrido un error al publicar la propiedad. Inténtalo de nuevo.",
@@ -545,7 +483,7 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
 
   // Convertir datos del formulario al formato que espera PropertyCard
   const getPropertyPreview = () => {
-    return formDataToProperty(formData);
+    return formDataToPropertyPreview(formData);
   };
 
   return (

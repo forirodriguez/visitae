@@ -160,10 +160,6 @@ export default function PropertyDetailHeader({
           {property.isFeatured && (
             <Badge className="bg-amber-500 text-white">Destacada</Badge>
           )}
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <span>ID: {property.id}</span>
-          <span>·</span>
           <PropertyStatusBadge status={property.status} />
         </div>
       </div>
