@@ -1,7 +1,6 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 
@@ -26,15 +25,7 @@ export default async function RootLayout(props: {
     <html lang={locale} suppressHydrationWarning>
       <body className={inter.className}>
         <QueryProvider>
-          <AuthProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="light"
-              disableTransitionOnChange
-            >
-              {props.children}
-            </ThemeProvider>
-          </AuthProvider>
+          <AuthProvider>{props.children}</AuthProvider>
         </QueryProvider>
       </body>
     </html>
