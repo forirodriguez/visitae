@@ -1,4 +1,3 @@
-//src/components/admin/admin-auth-check/index.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,32 +13,32 @@ export default function AdminAuthCheck({
   const params = useParams();
   const locale = (params.locale as string) || "es";
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true); // Nueva variable de carga
 
   useEffect(() => {
-    // En desarrollo, puedes establecer esto en true para saltarte la autenticación
     const isDevelopment = process.env.NODE_ENV === "development";
 
-    // Comprobar si el usuario está autenticado
     const authStatus = localStorage.getItem("isAuthenticated") === "true";
 
-    // Para desarrollo, podemos permitir bypass
     if (isDevelopment) {
       setIsAuthenticated(true);
       if (!authStatus) {
         localStorage.setItem("isAuthenticated", "true");
       }
+      setCheckingAuth(false);
     } else {
       setIsAuthenticated(authStatus);
+      setCheckingAuth(false);
 
-      // Redirigir si no está autenticado
       if (!authStatus) {
-        router.push(`/${locale}/login`);
+        setTimeout(() => {
+          router.replace(`/${locale}/login`);
+        }, 100);
       }
     }
   }, [router, locale]);
 
-  // Mostrar un indicador de carga mientras comprobamos la autenticación
-  if (isAuthenticated === null) {
+  if (checkingAuth) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-800" />
@@ -47,11 +46,9 @@ export default function AdminAuthCheck({
     );
   }
 
-  // Si no está autenticado, no renderizar nada (la redirección debería ocurrir)
   if (!isAuthenticated) {
     return null;
   }
 
-  // Si está autenticado, renderizar los children
   return <>{children}</>;
 }
