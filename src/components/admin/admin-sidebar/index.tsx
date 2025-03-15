@@ -16,6 +16,7 @@ import {
   LogOut,
   MessageSquare,
   BarChart3,
+  HousePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -27,7 +28,6 @@ interface SidebarItem {
   submenu?: { title: string; href: string }[];
 }
 
-// Mover la función fuera del componente
 const getSidebarItems = (locale: string): SidebarItem[] => [
   {
     title: "Dashboard",
@@ -38,27 +38,18 @@ const getSidebarItems = (locale: string): SidebarItem[] => [
     title: "Propiedades",
     href: `/${locale}/dashboard/properties`,
     icon: <Home className="h-5 w-5" />,
-    submenu: [
-      {
-        title: "Todas las propiedades",
-        href: `/${locale}/dashboard/properties`,
-      },
-      {
-        title: "Añadir propiedad",
-        href: `/${locale}/dashboard/properties/new`,
-      },
-      {
-        title: "Categorías",
-        href: `/${locale}/dashboard/properties/categories`,
-      },
-    ],
+  },
+  {
+    title: "Añadir propiedad",
+    href: `/${locale}/dashboard/properties/new`,
+    icon: <HousePlus className="h-5 w-5" />,
   },
   {
     title: "Agenda",
     href: `/${locale}/dashboard/calendar`,
     icon: <Calendar className="h-5 w-5" />,
   },
-  {
+  /*  {
     title: "Usuarios",
     href: `/${locale}/dashboard/users`,
     icon: <Users className="h-5 w-5" />,
@@ -67,8 +58,8 @@ const getSidebarItems = (locale: string): SidebarItem[] => [
       { title: "Agentes", href: `/${locale}/dashboard/users/agents` },
       { title: "Compradores", href: `/${locale}/dashboard/users/buyers` },
     ],
-  },
-  {
+  }, */
+  /*  {
     title: "Mensajes",
     href: `/${locale}/dashboard/messages`,
     icon: <MessageSquare className="h-5 w-5" />,
@@ -77,7 +68,7 @@ const getSidebarItems = (locale: string): SidebarItem[] => [
     title: "Informes",
     href: `/${locale}/dashboard/reports`,
     icon: <BarChart3 className="h-5 w-5" />,
-  },
+  }, */
   {
     title: "Configuración",
     href: `/${locale}/dashboard/settings`,
@@ -92,7 +83,6 @@ export default function AdminSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
-  // ✅ Usar useMemo para evitar recomputaciones innecesarias
   const sidebarItems = useMemo(() => getSidebarItems(locale), [locale]);
 
   const toggleSidebar = () => {
