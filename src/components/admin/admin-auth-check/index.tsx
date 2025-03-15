@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Loader2 } from "lucide-react";
 
 export default function AdminAuthCheck({
@@ -9,36 +10,18 @@ export default function AdminAuthCheck({
 }: {
   children: React.ReactNode;
 }) {
+  const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
   const locale = (params.locale as string) || "es";
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true); // Nueva variable de carga
 
   useEffect(() => {
-    const isDevelopment = process.env.NODE_ENV === "development";
-
-    const authStatus = localStorage.getItem("isAuthenticated") === "true";
-
-    if (isDevelopment) {
-      setIsAuthenticated(true);
-      if (!authStatus) {
-        localStorage.setItem("isAuthenticated", "true");
-      }
-      setCheckingAuth(false);
-    } else {
-      setIsAuthenticated(authStatus);
-      setCheckingAuth(false);
-
-      if (!authStatus) {
-        setTimeout(() => {
-          router.replace(`/${locale}/login`);
-        }, 100);
-      }
+    if (status === "unauthenticated") {
+      router.replace(`/${locale}`);
     }
-  }, [router, locale]);
+  }, [status, router, locale]);
 
-  if (checkingAuth) {
+  if (status === "loading") {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-800" />
@@ -46,7 +29,7 @@ export default function AdminAuthCheck({
     );
   }
 
-  if (!isAuthenticated) {
+  if (!session) {
     return null;
   }
 
