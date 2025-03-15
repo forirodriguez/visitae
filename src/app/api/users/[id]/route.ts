@@ -30,14 +30,19 @@ const UserUpdateSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+// Función para extraer `id` de la URL
+const getUserIdFromUrl = (request: NextRequest) => {
+  const urlParts = request.nextUrl.pathname.split("/");
+  return urlParts[urlParts.length - 1]; // Último segmento de la URL
+};
+
 // GET /api/users/[id] - Obtener un usuario por su ID
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
+    const id = getUserIdFromUrl(request);
+
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         name: true,
@@ -48,7 +53,6 @@ export async function GET(
         isActive: true,
         createdAt: true,
         updatedAt: true,
-        // Incluir datos relacionados si son necesarios
         ...(request.nextUrl.searchParams.get("includeVisits") === "true" && {
           agentVisits: true,
           clientVisits: true,
@@ -71,26 +75,21 @@ export async function GET(
 }
 
 // PUT /api/users/[id] - Actualizar un usuario completo
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest) {
   try {
+    const id = getUserIdFromUrl(request);
     const body = await request.json();
 
-    // Validar datos
     const validatedData = UserUpdateSchema.parse(body);
 
-    // Verificar que el usuario existe
     const existingUser = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingUser) {
       return formatApiNotFound("Usuario no encontrado");
     }
 
-    // Si se actualiza el email, verificar que no esté en uso
     if (validatedData.email && validatedData.email !== existingUser.email) {
       const emailExists = await prisma.user.findUnique({
         where: { email: validatedData.email },
@@ -107,17 +106,14 @@ export async function PUT(
       }
     }
 
-    // Preparar datos para actualización
     const updateData = { ...validatedData };
 
-    // Si hay una nueva contraseña, cifrarla
     if (updateData.password) {
       updateData.password = await hash(updateData.password, 10);
     }
 
-    // Actualizar usuario
     const updatedUser = await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       select: {
         id: true,
@@ -139,26 +135,21 @@ export async function PUT(
 }
 
 // PATCH /api/users/[id] - Actualizar campos específicos de un usuario
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest) {
   try {
+    const id = getUserIdFromUrl(request);
     const body = await request.json();
 
-    // Validar datos parciales
     const validatedData = UserUpdateSchema.partial().parse(body);
 
-    // Verificar que el usuario existe
     const existingUser = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingUser) {
       return formatApiNotFound("Usuario no encontrado");
     }
 
-    // Si se actualiza el email, verificar que no esté en uso
     if (validatedData.email && validatedData.email !== existingUser.email) {
       const emailExists = await prisma.user.findUnique({
         where: { email: validatedData.email },
@@ -175,17 +166,14 @@ export async function PATCH(
       }
     }
 
-    // Preparar datos para actualización
     const updateData = { ...validatedData };
 
-    // Si hay una nueva contraseña, cifrarla
     if (updateData.password) {
       updateData.password = await hash(updateData.password, 10);
     }
 
-    // Actualizar usuario
     const updatedUser = await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       select: {
         id: true,
@@ -207,33 +195,29 @@ export async function PATCH(
 }
 
 // DELETE /api/users/[id] - Eliminar un usuario
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
-    // Verificar que el usuario existe
+    const id = getUserIdFromUrl(request);
+
     const existingUser = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingUser) {
       return formatApiNotFound("Usuario no encontrado");
     }
 
-    // En lugar de eliminar al usuario, podríamos desactivarlo
     if (request.nextUrl.searchParams.get("softDelete") === "true") {
       await prisma.user.update({
-        where: { id: params.id },
+        where: { id },
         data: { isActive: false },
       });
 
       return formatApiSuccess("Usuario desactivado correctamente");
     }
 
-    // Eliminar el usuario y sus relaciones
     await prisma.user.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return formatApiSuccess("Usuario eliminado correctamente");

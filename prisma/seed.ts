@@ -16,6 +16,7 @@ async function main() {
 
     // Crear usuario administrador
     console.log("Creando usuarios administradores...");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const adminUser = await prisma.user.create({
       data: {
         id: "1",
@@ -27,6 +28,7 @@ async function main() {
     });
 
     // Crear usuario super administrador
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const superAdminUser = await prisma.user.create({
       data: {
         id: "2",
@@ -62,6 +64,7 @@ async function main() {
 
     // Crear propiedades
     console.log("Creando propiedades...");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const createdProperties = await Promise.all(
       seedProperties.map(async (property) => {
         return prisma.property.create({
@@ -89,6 +92,7 @@ async function main() {
 
     // Crear algunos clientes para las visitas
     console.log("Creando clientes...");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const clients = await Promise.all([
       prisma.user.create({
         data: {
@@ -120,7 +124,7 @@ async function main() {
     ]);
 
     // Mapeo de correos electrónicos a IDs de cliente
-    const clientEmailMap = {
+    const clientEmailMap: Record<string, string> = {
       "carlos@example.com": "client-1",
       "laura@example.com": "client-2",
       "miguel@example.com": "client-3",

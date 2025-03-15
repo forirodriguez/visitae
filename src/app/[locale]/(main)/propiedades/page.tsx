@@ -21,7 +21,8 @@ export default function PropertiesPage() {
   const [priceRange, setPriceRange] = useState([0, 1000000]);
 
   // Hook con filtros
-  const { properties, loading, error, updateFilters } = useFilteredProperties();
+  const { properties, isLoading, error, updateFilters } =
+    useFilteredProperties();
 
   const handleSearch = () => {
     updateFilters({
@@ -83,7 +84,7 @@ export default function PropertiesPage() {
       </div>
 
       {/* Resultados */}
-      {loading ? (
+      {isLoading ? (
         <div className="text-center py-10">Cargando propiedades...</div>
       ) : error ? (
         <div className="text-red-500 text-center py-10">{error}</div>

@@ -49,14 +49,19 @@ const PropertyUpdateSchema = z.object({
   isFeatured: z.boolean().optional(),
 });
 
+// Función para extraer ID de la URL
+const getPropertyIdFromUrl = (request: NextRequest) => {
+  const urlParts = request.nextUrl.pathname.split("/");
+  return urlParts[urlParts.length - 1]; // Último segmento de la URL
+};
+
 // GET /api/properties/[id] - Obtener una propiedad por ID
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
+    const id = getPropertyIdFromUrl(request);
+
     const property = await prisma.property.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!property) {
@@ -70,11 +75,9 @@ export async function GET(
 }
 
 // PUT /api/properties/[id] - Actualizar una propiedad completa
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest) {
   try {
+    const id = getPropertyIdFromUrl(request);
     const body = await request.json();
 
     // Validar datos completos
@@ -82,7 +85,7 @@ export async function PUT(
 
     // Verificar que la propiedad existe
     const existingProperty = await prisma.property.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingProperty) {
@@ -91,7 +94,7 @@ export async function PUT(
 
     // Actualizar propiedad
     const updatedProperty = await prisma.property.update({
-      where: { id: params.id },
+      where: { id },
       data: validatedData,
     });
 
@@ -102,11 +105,9 @@ export async function PUT(
 }
 
 // PATCH /api/properties/[id] - Actualizar campos específicos de una propiedad
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest) {
   try {
+    const id = getPropertyIdFromUrl(request);
     const body = await request.json();
 
     // Validar datos parciales
@@ -114,7 +115,7 @@ export async function PATCH(
 
     // Verificar que la propiedad existe
     const existingProperty = await prisma.property.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingProperty) {
@@ -123,7 +124,7 @@ export async function PATCH(
 
     // Actualizar campos específicos
     const updatedProperty = await prisma.property.update({
-      where: { id: params.id },
+      where: { id },
       data: validatedData,
     });
 
@@ -134,14 +135,13 @@ export async function PATCH(
 }
 
 // DELETE /api/properties/[id] - Eliminar una propiedad
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
+    const id = getPropertyIdFromUrl(request);
+
     // Verificar que la propiedad existe
     const existingProperty = await prisma.property.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingProperty) {
@@ -152,17 +152,17 @@ export async function DELETE(
     await prisma.$transaction(async (tx) => {
       // Eliminar visitas relacionadas
       await tx.visit.deleteMany({
-        where: { propertyId: params.id },
+        where: { propertyId: id },
       });
 
       // Eliminar relaciones con agentes
       await tx.agentProperty.deleteMany({
-        where: { propertyId: params.id },
+        where: { propertyId: id },
       });
 
       // Eliminar la propiedad
       await tx.property.delete({
-        where: { id: params.id },
+        where: { id },
       });
     });
 

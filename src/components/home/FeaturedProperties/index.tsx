@@ -9,7 +9,7 @@ import { useFeaturedProperties } from "@/hooks/useProperties";
 
 export default function FeaturedProperties() {
   const [currentPage, setCurrentPage] = useState(0);
-  const { properties, loading, error } = useFeaturedProperties();
+  const { properties, isLoading, error } = useFeaturedProperties();
   const propertiesPerPage = 6;
   const totalPages = Math.ceil(properties.length / propertiesPerPage);
 
@@ -26,7 +26,7 @@ export default function FeaturedProperties() {
     setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages);
   };
 
-  if (loading)
+  if (isLoading)
     return <div className="py-16 text-center">Cargando propiedades...</div>;
   if (error)
     return <div className="py-16 text-center text-red-500">{error}</div>;

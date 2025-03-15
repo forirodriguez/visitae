@@ -34,7 +34,7 @@ export default function CalendarPage() {
           <CalendarContainer visits={[]} />
         </TabsContent>
         <TabsContent value="list" className="space-y-4">
-          <VisitsList />
+          <VisitsList visits={[]} />
         </TabsContent>
       </Tabs>
     </div>

@@ -1,4 +1,4 @@
-// src/hooks/useProperty.ts
+// src/hooks/useProperties.ts
 "use client";
 
 import { useState, useEffect } from "react";
@@ -84,6 +84,23 @@ export function useProperties(initialFilters?: Partial<PropertyFilter>) {
   };
 
   return { properties, isLoading, error, filters, updateFilters };
+}
+
+// Hook específico para propiedades filtradas (mantiene compatibilidad con código existente)
+export function useFilteredProperties(
+  initialFilters?: Partial<PropertyFilter>
+) {
+  return useProperties(initialFilters);
+}
+
+// Hook específico para propiedades destacadas
+export function useFeaturedProperties(limit: number = 6) {
+  const { properties, isLoading, error } = useProperties({
+    featured: true,
+    limit,
+  });
+
+  return { properties, isLoading, error };
 }
 
 // Hook para realizar operaciones CRUD en propiedades

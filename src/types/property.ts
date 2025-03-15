@@ -18,12 +18,13 @@ export interface Property {
 }
 
 export interface PropertyFilter {
-  status: unknown;
-  featured: boolean;
   type?: "venta" | "alquiler";
   minPrice?: number;
   maxPrice?: number;
   minBedrooms?: number;
   location?: string;
   keyword?: string;
+  status?: string;
+  featured?: boolean;
+  limit?: number;
 }
