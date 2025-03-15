@@ -11,11 +11,8 @@ import {
   LayoutDashboard,
   Home,
   Calendar,
-  Users,
   Settings,
   LogOut,
-  MessageSquare,
-  BarChart3,
   HousePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
