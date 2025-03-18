@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,7 +39,7 @@ import { PropertyDetail } from "./property-detail";
 import {
   togglePropertyFeatured,
   updatePropertyStatus,
-} from "@/lib/mock-api/properties-api";
+} from "@/lib/api/client/properties";
 
 interface PropertyDetailHeaderProps {
   property: PropertyDetail;
@@ -54,10 +55,83 @@ export default function PropertyDetailHeader({
   onPropertyUpdate,
 }: PropertyDetailHeaderProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Mutación para cambiar el estado destacado
+  const featureMutation = useMutation({
+    mutationFn: ({ id, isFeatured }: { id: string; isFeatured: boolean }) =>
+      togglePropertyFeatured(id, isFeatured),
+    onSuccess: () => {
+      const newFeaturedState = !property.isFeatured;
+      toast.success(
+        newFeaturedState ? "Propiedad destacada" : "Propiedad no destacada",
+        {
+          description: newFeaturedState
+            ? "La propiedad se mostrará en secciones destacadas."
+            : "La propiedad ya no se mostrará como destacada.",
+        }
+      );
+
+      // Invalidar la consulta de la propiedad para recargarla
+      queryClient.invalidateQueries({ queryKey: ["property", property.id] });
+      // Invalidar la lista de propiedades
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
+
+      // Llamar al callback para actualizar datos
+      onPropertyUpdate();
+    },
+    onError: (error) => {
+      console.error("Error al cambiar estado destacado:", error);
+      toast.error("Error al cambiar estado destacado", {
+        description:
+          "No se pudo completar la operación. Inténtalo de nuevo más tarde.",
+      });
+    },
+  });
+
+  // Mutación para cambiar el estado
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      updatePropertyStatus(
+        id,
+        status as "borrador" | "publicada" | "destacada" | "inactiva"
+      ),
+    onSuccess: (_, variables) => {
+      const statusMessages = {
+        borrador: "Guardada como borrador",
+        publicada: "Propiedad publicada",
+        destacada: "Propiedad destacada",
+        inactiva: "Propiedad inactiva",
+      };
+
+      toast.success(
+        statusMessages[variables.status as keyof typeof statusMessages],
+        {
+          description:
+            "El estado de la propiedad ha sido actualizado correctamente.",
+        }
+      );
+
+      // Invalidar la consulta de la propiedad para recargarla
+      queryClient.invalidateQueries({ queryKey: ["property", property.id] });
+      // Invalidar la lista de propiedades
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
+
+      // Llamar al callback para actualizar datos
+      onPropertyUpdate();
+    },
+    onError: (error) => {
+      console.error("Error al cambiar estado:", error);
+      toast.error("Error al cambiar estado", {
+        description:
+          "No se pudo completar la operación. Inténtalo de nuevo más tarde.",
+      });
+    },
+  });
 
   // Navegar a la página de edición
   const handleEditProperty = () => {
@@ -69,75 +143,23 @@ export default function PropertyDetailHeader({
   // Ver la propiedad publicada
   const handleViewPublished = () => {
     // Obtener el locale actual de la URL
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const locale = window.location.pathname.split("/")[1];
-    // En una implementación real, redireccionaríamos a la vista pública
-    toast.info("Vista pública", {
-      description: "Esta funcionalidad estará disponible próximamente",
-    });
-    // router.push(`/${locale}/properties/${property.id}`);
+    router.push(`/${locale}/propiedades/${property.id}`);
   };
 
   // Cambiar estado destacado
   const handleToggleFeatured = async () => {
-    setActionLoading("feature");
-    try {
-      const newFeaturedState = !property.isFeatured;
-      await togglePropertyFeatured(property.id, newFeaturedState);
-
-      toast.success(
-        newFeaturedState ? "Propiedad destacada" : "Propiedad no destacada",
-        {
-          description: newFeaturedState
-            ? "La propiedad se mostrará en secciones destacadas."
-            : "La propiedad ya no se mostrará como destacada.",
-        }
-      );
-
-      // Llamar al callback para actualizar datos
-      onPropertyUpdate();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      toast.error("Error al cambiar estado destacado", {
-        description:
-          "No se pudo completar la operación. Inténtalo de nuevo más tarde.",
-      });
-    } finally {
-      setActionLoading(null);
-    }
+    featureMutation.mutate({
+      id: property.id,
+      isFeatured: !property.isFeatured,
+    });
   };
 
   // Cambiar estado (publicada, borrador, etc.)
   const handleStatusChange = async (
     newStatus: "borrador" | "publicada" | "destacada" | "inactiva"
   ) => {
-    setActionLoading("status");
-    try {
-      await updatePropertyStatus(property.id, newStatus);
-
-      const statusMessages = {
-        borrador: "Guardada como borrador",
-        publicada: "Propiedad publicada",
-        destacada: "Propiedad destacada",
-        inactiva: "Propiedad inactiva",
-      };
-
-      toast.success(statusMessages[newStatus], {
-        description:
-          "El estado de la propiedad ha sido actualizado correctamente.",
-      });
-
-      // Llamar al callback para actualizar datos
-      onPropertyUpdate();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      toast.error("Error al cambiar estado", {
-        description:
-          "No se pudo completar la operación. Inténtalo de nuevo más tarde.",
-      });
-    } finally {
-      setActionLoading(null);
-    }
+    statusMutation.mutate({ id: property.id, status: newStatus });
   };
 
   // Compartir propiedad
@@ -151,6 +173,10 @@ export default function PropertyDetailHeader({
     setShowScheduleDialog(true);
     // En una implementación real, aquí tendríamos un formulario para programar visita
   };
+
+  // Determinar si hay alguna operación en curso
+  const isActionLoading =
+    isLoading || featureMutation.isPending || statusMutation.isPending;
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -170,6 +196,11 @@ export default function PropertyDetailHeader({
           size="sm"
           className="flex items-center gap-1"
           onClick={handleViewPublished}
+          disabled={
+            isActionLoading ||
+            property.status === "borrador" ||
+            property.status === "inactiva"
+          }
         >
           <Eye className="h-4 w-4" />
           <span className="hidden sm:inline">Ver publicada</span>
@@ -180,6 +211,7 @@ export default function PropertyDetailHeader({
           size="sm"
           className="flex items-center gap-1"
           onClick={handleScheduleVisit}
+          disabled={isActionLoading}
         >
           <Calendar className="h-4 w-4" />
           <span className="hidden sm:inline">Programar visita</span>
@@ -190,6 +222,7 @@ export default function PropertyDetailHeader({
           size="sm"
           className="flex items-center gap-1 bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
           onClick={handleEditProperty}
+          disabled={isActionLoading}
         >
           <Edit className="h-4 w-4" />
           <span className="hidden sm:inline">Editar</span>
@@ -197,8 +230,12 @@ export default function PropertyDetailHeader({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreHorizontal className="h-4 w-4" />
+            <Button variant="ghost" size="icon" disabled={isActionLoading}>
+              {isActionLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MoreHorizontal className="h-4 w-4" />
+              )}
               <span className="sr-only">Más acciones</span>
             </Button>
           </DropdownMenuTrigger>
@@ -206,12 +243,15 @@ export default function PropertyDetailHeader({
             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem onClick={handleEditProperty}>
+            <DropdownMenuItem
+              onClick={handleEditProperty}
+              disabled={isActionLoading}
+            >
               <Edit className="mr-2 h-4 w-4" />
               <span>Editar propiedad</span>
             </DropdownMenuItem>
 
-            <DropdownMenuItem onClick={handleShare}>
+            <DropdownMenuItem onClick={handleShare} disabled={isActionLoading}>
               <Share2 className="mr-2 h-4 w-4" />
               <span>Compartir propiedad</span>
             </DropdownMenuItem>
@@ -222,11 +262,9 @@ export default function PropertyDetailHeader({
 
             <DropdownMenuItem
               onClick={() => handleStatusChange("publicada")}
-              disabled={
-                property.status === "publicada" || actionLoading === "status"
-              }
+              disabled={property.status === "publicada" || isActionLoading}
             >
-              {actionLoading === "status" ? (
+              {statusMutation.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Eye className="mr-2 h-4 w-4" />
@@ -236,11 +274,9 @@ export default function PropertyDetailHeader({
 
             <DropdownMenuItem
               onClick={() => handleStatusChange("borrador")}
-              disabled={
-                property.status === "borrador" || actionLoading === "status"
-              }
+              disabled={property.status === "borrador" || isActionLoading}
             >
-              {actionLoading === "status" ? (
+              {statusMutation.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Edit className="mr-2 h-4 w-4" />
@@ -250,11 +286,9 @@ export default function PropertyDetailHeader({
 
             <DropdownMenuItem
               onClick={() => handleStatusChange("inactiva")}
-              disabled={
-                property.status === "inactiva" || actionLoading === "status"
-              }
+              disabled={property.status === "inactiva" || isActionLoading}
             >
-              {actionLoading === "status" ? (
+              {statusMutation.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Eye className="mr-2 h-4 w-4 text-gray-400" />
@@ -266,9 +300,9 @@ export default function PropertyDetailHeader({
 
             <DropdownMenuItem
               onClick={handleToggleFeatured}
-              disabled={actionLoading === "feature"}
+              disabled={isActionLoading}
             >
-              {actionLoading === "feature" ? (
+              {featureMutation.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Star className="mr-2 h-4 w-4" />
@@ -285,7 +319,7 @@ export default function PropertyDetailHeader({
             <DropdownMenuItem
               onClick={() => setShowDeleteDialog(true)}
               className="text-red-600 dark:text-red-400"
-              disabled={isLoading}
+              disabled={isActionLoading}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               <span>Eliminar propiedad</span>
@@ -305,13 +339,15 @@ export default function PropertyDetailHeader({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isActionLoading}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={onDelete}
               className="bg-red-600 hover:bg-red-700 text-white"
-              disabled={isLoading}
+              disabled={isActionLoading}
             >
-              {isLoading ? (
+              {isActionLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Eliminando...
@@ -336,13 +372,16 @@ export default function PropertyDetailHeader({
           <div className="grid gap-4">
             <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-md">
               <p className="text-sm font-mono break-all">
-                https://visitae.com/properties/{property.id}
+                {window.location.origin}/propiedades/{property.id}
               </p>
             </div>
             <div className="flex gap-2">
               <Button
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
                 onClick={() => {
+                  navigator.clipboard.writeText(
+                    `${window.location.origin}/propiedades/${property.id}`
+                  );
                   toast.success("Enlace copiado al portapapeles");
                   setShowShareDialog(false);
                 }}

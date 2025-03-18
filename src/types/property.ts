@@ -1,3 +1,4 @@
+//src/types/property.ts
 export interface Property {
   id: string;
   title: string;

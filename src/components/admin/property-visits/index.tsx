@@ -1,3 +1,4 @@
+//src/components/admin/property-visits/index.tsx
 "use client";
 
 import { useState } from "react";
@@ -10,7 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getPendingVisitsForProperty } from "@/utils/visits-utils";
 import { Property } from "@/types/property";
 import VisitDialog from "@/components/admin/calendar/visit-dialog";
 import {
@@ -27,8 +27,10 @@ import { es } from "date-fns/locale";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
-import { VisitStatus } from "@/types/visits";
-import { mockVisits } from "@/lib/mock-data/visits";
+import { Visit, VisitStatus } from "@/types/visits";
+import { useVisits, useVisitOperations } from "@/hooks/useVisits";
+import { useParams } from "next/navigation";
+import { toast } from "sonner";
 
 interface PropertyVisitsProps {
   property: Property;
@@ -36,25 +38,75 @@ interface PropertyVisitsProps {
 
 export default function PropertyVisits({ property }: PropertyVisitsProps) {
   const [showDialog, setShowDialog] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isLoading, setIsLoading] = useState(false);
+  const [visitToEdit, setVisitToEdit] = useState<Visit | null>(null);
 
-  // Obtener las visitas pendientes para esta propiedad
-  const pendingVisits = getPendingVisitsForProperty(property.id);
+  // Obtener el locale de la URL
+  const params = useParams();
+  const locale = params.locale as string;
 
-  // Obtener todas las visitas para esta propiedad
-  const allVisits = mockVisits.filter(
-    (visit) => visit.propertyId === property.id
-  );
+  // Usar el hook para obtener visitas de esta propiedad
+  const { data: allVisits = [], isLoading } = useVisits({
+    propertyId: property.id,
+  });
+
+  // Operaciones CRUD para visitas
+  const { createVisit, updateVisit } = useVisitOperations();
 
   // Filtrar visitas por estado
+  const pendingVisits = allVisits.filter(
+    (v) => v.status === "pendiente" || v.status === "confirmada"
+  );
   const confirmedVisits = allVisits.filter((v) => v.status === "confirmada");
   const completedVisits = allVisits.filter((v) => v.status === "completada");
   const canceledVisits = allVisits.filter((v) => v.status === "cancelada");
 
   // Función para programar nueva visita
   const handleScheduleVisit = () => {
+    setVisitToEdit(null);
     setShowDialog(true);
+  };
+
+  // Función para editar una visita existente
+  const handleEditVisit = (visit: Visit) => {
+    setVisitToEdit(visit);
+    setShowDialog(true);
+  };
+
+  // Función para guardar una visita (nueva o editada)
+  const handleSaveVisit = async (visitData: Visit) => {
+    try {
+      if (visitToEdit) {
+        // Actualizar visita existente
+        await updateVisit(visitData.id, {
+          propertyId: property.id,
+          date: visitData.date.toISOString().split("T")[0],
+          time: visitData.time,
+          type: visitData.type,
+          status: visitData.status,
+          notes: visitData.notes,
+          clientId: "client-1", // Esto debería venir de un selector de clientes
+          agentId: visitData.agentId,
+        });
+        toast.success("Visita actualizada correctamente");
+      } else {
+        // Añadir nueva visita
+        await createVisit({
+          propertyId: property.id,
+          date: visitData.date.toISOString().split("T")[0],
+          time: visitData.time,
+          type: visitData.type,
+          status: visitData.status,
+          notes: visitData.notes,
+          clientId: "client-1", // Esto debería venir de un selector de clientes
+          agentId: visitData.agentId,
+        });
+        toast.success("Visita programada correctamente");
+      }
+      setShowDialog(false);
+    } catch (error) {
+      toast.error("Error al guardar la visita");
+      console.error("Error guardando visita:", error);
+    }
   };
 
   // Función para obtener el color según estado
@@ -95,7 +147,11 @@ export default function PropertyVisits({ property }: PropertyVisitsProps) {
           </TabsList>
 
           <TabsContent value="pending">
-            {pendingVisits.length > 0 ? (
+            {isLoading ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : pendingVisits.length > 0 ? (
               <ScrollArea className="h-[300px] pr-4">
                 <div className="space-y-3">
                   {pendingVisits.map((visit) => (
@@ -107,7 +163,7 @@ export default function PropertyVisits({ property }: PropertyVisitsProps) {
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium">
-                            {format(visit.date, "EEEE, d 'de' MMMM", {
+                            {format(new Date(visit.date), "EEEE, d 'de' MMMM", {
                               locale: es,
                             })}
                           </span>
@@ -146,9 +202,16 @@ export default function PropertyVisits({ property }: PropertyVisitsProps) {
                           &quot;{visit.notes}&quot;
                         </p>
                       )}
-                      <div className="mt-3 flex justify-end">
+                      <div className="mt-3 flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditVisit(visit)}
+                        >
+                          Editar
+                        </Button>
                         <Link
-                          href={`/admin/calendar/visits/${visit.id}`}
+                          href={`/${locale}/dashboard/calendar/visits/${visit.id}`}
                           passHref
                         >
                           <Button variant="outline" size="sm">
@@ -193,7 +256,7 @@ export default function PropertyVisits({ property }: PropertyVisitsProps) {
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                               <span className="text-sm">
-                                {format(visit.date, "dd/MM/yyyy", {
+                                {format(new Date(visit.date), "dd/MM/yyyy", {
                                   locale: es,
                                 })}{" "}
                                 • {visit.time}
@@ -203,14 +266,23 @@ export default function PropertyVisits({ property }: PropertyVisitsProps) {
                               {visit.clientName}
                             </div>
                           </div>
-                          <Link
-                            href={`/admin/calendar/visits/${visit.id}`}
-                            passHref
-                          >
-                            <Button variant="ghost" size="sm">
-                              Detalles
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditVisit(visit)}
+                            >
+                              Editar
                             </Button>
-                          </Link>
+                            <Link
+                              href={`/${locale}/dashboard/calendar/visits/${visit.id}`}
+                              passHref
+                            >
+                              <Button variant="ghost" size="sm">
+                                Detalles
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -230,7 +302,7 @@ export default function PropertyVisits({ property }: PropertyVisitsProps) {
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                               <span className="text-sm">
-                                {format(visit.date, "dd/MM/yyyy", {
+                                {format(new Date(visit.date), "dd/MM/yyyy", {
                                   locale: es,
                                 })}{" "}
                                 • {visit.time}
@@ -240,14 +312,23 @@ export default function PropertyVisits({ property }: PropertyVisitsProps) {
                               {visit.clientName}
                             </div>
                           </div>
-                          <Link
-                            href={`/admin/calendar/visits/${visit.id}`}
-                            passHref
-                          >
-                            <Button variant="ghost" size="sm">
-                              Detalles
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditVisit(visit)}
+                            >
+                              Editar
                             </Button>
-                          </Link>
+                            <Link
+                              href={`/${locale}/dashboard/calendar/visits/${visit.id}`}
+                              passHref
+                            >
+                              <Button variant="ghost" size="sm">
+                                Detalles
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -267,7 +348,7 @@ export default function PropertyVisits({ property }: PropertyVisitsProps) {
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                               <span className="text-sm">
-                                {format(visit.date, "dd/MM/yyyy", {
+                                {format(new Date(visit.date), "dd/MM/yyyy", {
                                   locale: es,
                                 })}{" "}
                                 • {visit.time}
@@ -277,14 +358,23 @@ export default function PropertyVisits({ property }: PropertyVisitsProps) {
                               {visit.clientName}
                             </div>
                           </div>
-                          <Link
-                            href={`/admin/calendar/visits/${visit.id}`}
-                            passHref
-                          >
-                            <Button variant="ghost" size="sm">
-                              Detalles
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditVisit(visit)}
+                            >
+                              Editar
                             </Button>
-                          </Link>
+                            <Link
+                              href={`/${locale}/dashboard/calendar/visits/${visit.id}`}
+                              passHref
+                            >
+                              <Button variant="ghost" size="sm">
+                                Detalles
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -310,7 +400,8 @@ export default function PropertyVisits({ property }: PropertyVisitsProps) {
         open={showDialog}
         onOpenChange={setShowDialog}
         selectedDate={new Date()}
-        existingVisit={null}
+        existingVisit={visitToEdit}
+        onSave={handleSaveVisit}
       />
     </Card>
   );

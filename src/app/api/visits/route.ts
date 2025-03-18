@@ -1,8 +1,30 @@
+// src/app/api/visits/route.ts
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { handleApiError } from "@/lib/api/utils/error-handler";
 import { formatApiResponse } from "@/lib/api/utils/response-formatter";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
+
+// Esquema de validación para parámetros de consulta
+const QuerySchema = z.object({
+  propertyId: z.string().optional(),
+  status: z.string().optional(), // Acepta una cadena que puede contener varios estados separados por coma
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  includeProperties: z
+    .string()
+    .optional()
+    .transform((val) => val === "true"),
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val) : undefined)),
+  page: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val) : 1)),
+});
 
 // Esquema de validación para crear visitas
 const VisitSchema = z.object({
@@ -27,69 +49,156 @@ const VisitSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Definir tipo para visitas con relaciones incluidas
+type VisitWithRelations = Prisma.VisitGetPayload<{
+  include: {
+    property: true;
+    agent: {
+      select: {
+        id: true;
+        name: true;
+        email: true;
+        avatarUrl: true;
+      };
+    };
+    client: {
+      select: {
+        id: true;
+        name: true;
+        email: true;
+        phone: true;
+      };
+    };
+  };
+}>;
+
+// Definir tipo para visitas sin relaciones
+type VisitWithoutRelations = Prisma.VisitGetPayload<object>;
+
 // GET /api/visits - Obtener todas las visitas con filtros opcionales
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Parsear parámetros de búsqueda
-    const propertyId = searchParams.get("propertyId");
-    const agentId = searchParams.get("agentId");
-    const clientId = searchParams.get("clientId");
-    const status = searchParams.get("status") as
-      | "pendiente"
-      | "confirmada"
-      | "cancelada"
-      | "completada"
-      | null;
-    const type = searchParams.get("type") as
-      | "presencial"
-      | "videollamada"
-      | null;
-    const startDate = searchParams.get("startDate")
-      ? new Date(searchParams.get("startDate")!)
-      : undefined;
-    const endDate = searchParams.get("endDate")
-      ? new Date(searchParams.get("endDate")!)
+    // Validar parámetros de consulta
+    const {
+      propertyId,
+      status,
+      startDate,
+      endDate,
+      includeProperties,
+      limit,
+      page,
+    } = QuerySchema.parse(Object.fromEntries(searchParams));
+
+    // Procesar estados si se proporcionan múltiples separados por coma
+    const statusFilter = status
+      ? { in: status.split(",").map((s) => s.trim()) }
       : undefined;
 
-    // Construir consulta
-    const visits = await prisma.visit.findMany({
-      where: {
-        ...(propertyId && { propertyId }),
-        ...(agentId && { agentId }),
-        ...(clientId && { clientId }),
-        ...(status && { status }),
-        ...(type && { type }),
-        ...(startDate &&
-          endDate && {
-            date: {
-              gte: startDate,
-              lte: endDate,
-            },
-          }),
-        ...(startDate &&
-          !endDate && {
-            date: {
-              gte: startDate,
-            },
-          }),
-        ...(!startDate &&
-          endDate && {
-            date: {
-              lte: endDate,
-            },
-          }),
-      },
-      include: {
-        property: true,
-        agent: true,
-        client: true,
-      },
-      orderBy: [{ date: "asc" }, { time: "asc" }],
-    });
+    // Construir base de la consulta
+    const whereClause = {
+      ...(propertyId && { propertyId }),
+      ...(statusFilter && { status: statusFilter }),
+      ...(startDate && { date: { gte: new Date(startDate) } }),
+      ...(endDate && { date: { lte: new Date(endDate) } }),
+    };
 
-    return formatApiResponse(visits);
+    // Ejecutar consulta con o sin relaciones según se solicite
+    if (includeProperties) {
+      // Consulta con relaciones incluidas
+      const visitsWithRelations = (await prisma.visit.findMany({
+        where: whereClause,
+        include: {
+          property: true,
+          agent: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+          client: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
+        },
+        orderBy: [{ date: "asc" }, { time: "asc" }],
+        ...(limit && { take: limit }),
+        ...(page && limit && { skip: (page - 1) * limit }),
+      })) as VisitWithRelations[];
+
+      // Formatear respuesta con datos de relaciones
+      const formattedVisits = visitsWithRelations.map((visit) => ({
+        id: visit.id,
+        propertyId: visit.propertyId,
+        propertyTitle: visit.property.title,
+        propertyImage: visit.property.image,
+        clientName: visit.client.name,
+        clientEmail: visit.client.email,
+        clientPhone: visit.client.phone || "",
+        date: visit.date,
+        time: visit.time,
+        type: visit.type,
+        status: visit.status,
+        agentId: visit.agentId,
+        notes: visit.notes,
+        // Incluir objetos relacionados completos
+        property: visit.property,
+        agent: visit.agent,
+        client: visit.client,
+      }));
+
+      // Agregar metadatos de paginación si es necesario
+      if (limit) {
+        const total = await prisma.visit.count({ where: whereClause });
+        const paginationData = {
+          data: formattedVisits,
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+          },
+        };
+
+        return formatApiResponse(paginationData);
+      }
+
+      return formatApiResponse(formattedVisits);
+    } else {
+      // Consulta sin relaciones incluidas
+      const visitsWithoutRelations = (await prisma.visit.findMany({
+        where: whereClause,
+        orderBy: [{ date: "asc" }, { time: "asc" }],
+        ...(limit && { take: limit }),
+        ...(page && limit && { skip: (page - 1) * limit }),
+      })) as VisitWithoutRelations[];
+
+      // Agregar metadatos de paginación si es necesario
+      if (limit) {
+        const total = await prisma.visit.count({ where: whereClause });
+        const paginationData = {
+          data: visitsWithoutRelations,
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+          },
+        };
+
+        return formatApiResponse(paginationData);
+      }
+
+      // Responder con los datos tal como vienen
+      return formatApiResponse(visitsWithoutRelations);
+    }
   } catch (error) {
     return handleApiError(error);
   }
@@ -154,16 +263,33 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear visita
-    const visit = await prisma.visit.create({
+    const visit = (await prisma.visit.create({
       data: validatedData,
       include: {
         property: true,
         agent: true,
         client: true,
       },
-    });
+    })) as VisitWithRelations;
 
-    return formatApiResponse(visit, { status: 201 });
+    // Formatear la respuesta para mantener compatibilidad con la estructura esperada
+    const formattedVisit = {
+      id: visit.id,
+      propertyId: visit.propertyId,
+      propertyTitle: visit.property.title,
+      propertyImage: visit.property.image,
+      clientName: visit.client.name,
+      clientEmail: visit.client.email,
+      clientPhone: visit.client.phone || "",
+      date: visit.date,
+      time: visit.time,
+      type: visit.type,
+      status: visit.status,
+      agentId: visit.agentId,
+      notes: visit.notes,
+    };
+
+    return formatApiResponse(formattedVisit, { status: 201 });
   } catch (error) {
     return handleApiError(error);
   }

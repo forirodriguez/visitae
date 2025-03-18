@@ -1,4 +1,3 @@
-//src/app/[locale]/(account)/dashboard/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -18,52 +17,160 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Home, TrendingUp, Eye, Clock, Plus } from "lucide-react";
 import Link from "next/link";
 import { Visit, VisitStatus } from "@/types/visits";
-import { mockVisits } from "@/lib/mock-data/visits"; // Asumiendo que tienes datos mock
-
-// Nota: Los metadatos están definidos en un archivo separado para compatibilidad con 'use client'
+import { useVisits, useVisitOperations } from "@/hooks/useVisits";
+import { useProperties } from "@/hooks/useProperties";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function DashboardPage() {
-  // Estado para las visitas
-  const [visits, setVisits] = useState<Visit[]>(mockVisits);
+  // Obtener la fecha actual formateada para el rango inicial
+  const today = new Date();
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+  // Estado para el diálogo de visitas
   const [dialogOpen, setDialogOpen] = useState(false);
   const [visitToEdit, setVisitToEdit] = useState<Visit | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedDate, setSelectedDate] = useState(new Date());
 
+  // Estado para el diálogo de confirmación de eliminación
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [visitToDelete, setVisitToDelete] = useState<string | null>(null);
+
+  // Fechas formateadas para la consulta de visitas
+  const startDateStr = format(startOfMonth, "yyyy-MM-dd");
+  const endDateStr = format(endOfMonth, "yyyy-MM-dd");
+
+  // Usar los hooks para obtener datos del backend
+  const { data: visits = [], isLoading: visitsLoading } = useVisits({
+    startDate: startDateStr,
+    endDate: endDateStr,
+  });
+
+  const { properties = [], isLoading: propertiesLoading } = useProperties();
+
+  // Operaciones CRUD para visitas
+  const {
+    createVisit,
+    updateVisit,
+    updateVisitStatus,
+    deleteVisit,
+    isLoading: operationsLoading,
+  } = useVisitOperations();
+
   // Manejador para añadir visita
-  const handleAddVisit = () => {
+  const handleAddVisit = (date?: Date) => {
     setVisitToEdit(null);
+    if (date) {
+      setSelectedDate(date);
+    }
     setDialogOpen(true);
   };
 
   // Manejador para editar visita
-  const handleEditVisit = (visit: Visit) => {
-    setVisitToEdit(visit);
-    setDialogOpen(true);
+  const handleEditVisit = (visitId: string) => {
+    const visit = visits.find((v) => v.id === visitId);
+    if (visit) {
+      setVisitToEdit(visit);
+      setDialogOpen(true);
+    }
+  };
+
+  // Manejador para mostrar diálogo de confirmación para eliminar visita
+  const handleConfirmDelete = (visitId: string) => {
+    setVisitToDelete(visitId);
+    setDeleteDialogOpen(true);
+  };
+
+  // Manejador para eliminar visita
+  const handleDeleteVisit = async () => {
+    if (!visitToDelete) return;
+
+    try {
+      await deleteVisit(visitToDelete);
+      toast.success("Visita eliminada correctamente");
+      // La consulta se actualizará automáticamente gracias a React Query
+    } catch (error) {
+      toast.error("Error al eliminar la visita");
+      console.error("Error eliminando visita:", error);
+    } finally {
+      setDeleteDialogOpen(false);
+      setVisitToDelete(null);
+    }
   };
 
   // Manejador para actualizar estado de visita
-  const handleUpdateVisitStatus = (visit: Visit, newStatus: VisitStatus) => {
-    setVisits((prevVisits) =>
-      prevVisits.map((v) =>
-        v.id === visit.id ? { ...v, status: newStatus } : v
-      )
-    );
+  const handleUpdateVisitStatus = async (
+    visit: Visit,
+    newStatus: VisitStatus
+  ) => {
+    try {
+      await updateVisitStatus(visit.id, newStatus);
+      toast.success(`Visita ${newStatus} correctamente`);
+    } catch (error) {
+      toast.error("Error al actualizar el estado de la visita");
+      console.error("Error actualizando estado de visita:", error);
+    }
   };
 
   // Manejador para guardar visita (nueva o editada)
-  const handleSaveVisit = (visitData: Visit) => {
-    if (visitToEdit) {
-      // Actualizar visita existente
-      setVisits((prevVisits) =>
-        prevVisits.map((v) => (v.id === visitData.id ? visitData : v))
-      );
-    } else {
-      // Añadir nueva visita
-      setVisits((prevVisits) => [...prevVisits, visitData]);
+  const handleSaveVisit = async (visitData: Visit) => {
+    try {
+      if (visitToEdit) {
+        // Actualizar visita existente
+        await updateVisit(visitData.id, {
+          propertyId: visitData.propertyId,
+          date: visitData.date.toISOString().split("T")[0], // Formato YYYY-MM-DD
+          time: visitData.time,
+          type: visitData.type,
+          status: visitData.status,
+          notes: visitData.notes,
+          clientId: "client-1", // Asumiendo un valor por defecto para pruebas
+          agentId: visitData.agentId,
+        });
+        toast.success("Visita actualizada correctamente");
+      } else {
+        // Añadir nueva visita
+        await createVisit({
+          propertyId: visitData.propertyId,
+          date: visitData.date.toISOString().split("T")[0], // Formato YYYY-MM-DD
+          time: visitData.time,
+          type: visitData.type,
+          status: visitData.status,
+          notes: visitData.notes,
+          clientId: "client-1", // Asumiendo un valor por defecto para pruebas
+          agentId: visitData.agentId,
+        });
+        toast.success("Visita programada correctamente");
+      }
+      setDialogOpen(false);
+    } catch (error) {
+      toast.error("Error al guardar la visita");
+      console.error("Error guardando visita:", error);
     }
-    setDialogOpen(false);
   };
+
+  // Estadísticas rápidas para las tarjetas
+  const totalProperties = properties.length;
+  const publishedProperties = properties.filter(
+    (p) => p.status === "publicada"
+  ).length;
+  const draftProperties = properties.filter(
+    (p) => p.status === "borrador"
+  ).length;
+  const scheduledVisits = visits.filter((v) =>
+    ["pendiente", "confirmada"].includes(v.status)
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -91,13 +198,26 @@ export default function DashboardPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          {/* Nuevo componente de Calendario/Agenda */}
-          <CalendarContainer
-            visits={visits}
-            onAddVisit={handleAddVisit}
-            onEditVisit={handleEditVisit}
-            onUpdateVisitStatus={handleUpdateVisitStatus}
-          />
+          {/* Mostrar un estado de carga mientras se obtienen los datos */}
+          {visitsLoading ? (
+            <Card>
+              <CardContent className="py-10">
+                <div className="flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            /* Componente de Calendario/Agenda */
+            <CalendarContainer
+              visits={visits}
+              onAddVisit={handleAddVisit}
+              onEditVisit={handleEditVisit}
+              onUpdateVisitStatus={handleUpdateVisitStatus}
+              onDeleteVisit={handleConfirmDelete}
+              isLoading={operationsLoading}
+            />
+          )}
 
           {/* Actividad reciente en una card separada */}
           <Card>
@@ -123,41 +243,47 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Stats Cards */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <DashboardStatCard
-                  title="Total Propiedades"
-                  value="256"
-                  change="+12%"
-                  trend="up"
-                  description="Comparado con el mes anterior"
-                  icon={<Home className="h-5 w-5" />}
-                />
-                <DashboardStatCard
-                  title="Propiedades Publicadas"
-                  value="198"
-                  change="+8%"
-                  trend="up"
-                  description="Comparado con el mes anterior"
-                  icon={<Eye className="h-5 w-5" />}
-                />
-                <DashboardStatCard
-                  title="Propiedades en Borrador"
-                  value="58"
-                  change="-3%"
-                  trend="down"
-                  description="Comparado con el mes anterior"
-                  icon={<Clock className="h-5 w-5" />}
-                />
-                <DashboardStatCard
-                  title="Visitas Agendadas"
-                  value="124"
-                  change="+18%"
-                  trend="up"
-                  description="Comparado con el mes anterior"
-                  icon={<TrendingUp className="h-5 w-5" />}
-                />
-              </div>
+              {propertiesLoading ? (
+                <div className="flex justify-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                /* Stats Cards */
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <DashboardStatCard
+                    title="Total Propiedades"
+                    value={totalProperties.toString()}
+                    change="+12%"
+                    trend="up"
+                    description="Comparado con el mes anterior"
+                    icon={<Home className="h-5 w-5" />}
+                  />
+                  <DashboardStatCard
+                    title="Propiedades Publicadas"
+                    value={publishedProperties.toString()}
+                    change="+8%"
+                    trend="up"
+                    description="Comparado con el mes anterior"
+                    icon={<Eye className="h-5 w-5" />}
+                  />
+                  <DashboardStatCard
+                    title="Propiedades en Borrador"
+                    value={draftProperties.toString()}
+                    change="-3%"
+                    trend="down"
+                    description="Comparado con el mes anterior"
+                    icon={<Clock className="h-5 w-5" />}
+                  />
+                  <DashboardStatCard
+                    title="Visitas Agendadas"
+                    value={scheduledVisits.toString()}
+                    change="+18%"
+                    trend="up"
+                    description="Comparado con el mes anterior"
+                    icon={<TrendingUp className="h-5 w-5" />}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -189,6 +315,28 @@ export default function DashboardPage() {
         existingVisit={visitToEdit}
         onSave={handleSaveVisit}
       />
+
+      {/* Diálogo de confirmación para eliminar visita */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente la
+              visita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteVisit}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

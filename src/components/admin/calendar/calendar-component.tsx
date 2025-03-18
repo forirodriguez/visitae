@@ -1,222 +1,135 @@
+//src/components/admin/calendar/calendar-component.tsx
 "use client";
 
-import { format, isToday } from "date-fns";
+import { useState, useEffect } from "react";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  isSameMonth,
+  isSameDay,
+  addDays,
+  isToday,
+} from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Visit } from "@/types/visits";
 import { cn } from "@/lib/utils";
 
-interface CalendarProps {
+interface CalendarComponentProps {
   visits: Visit[];
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
+  currentMonth?: Date;
 }
 
 export default function CalendarComponent({
-  visits = [], // valor por defecto para evitar errores si visits es undefined
-  selectedDate = new Date(), // valor por defecto para evitar errores si selectedDate es undefined
+  visits = [],
+  selectedDate,
   onDateSelect,
-}: CalendarProps) {
-  // Verificación de seguridad para evitar el error
-  if (!selectedDate) {
-    selectedDate = new Date(); // Asignar fecha actual si selectedDate es undefined
-  }
+  currentMonth = new Date(),
+}: CalendarComponentProps) {
+  // Estado para la matriz de días a mostrar
+  const [calendarDays, setCalendarDays] = useState<Date[][]>([]);
 
-  // Obtener información del mes actual
-  const firstDayOfMonth = new Date(
-    selectedDate.getFullYear(),
-    selectedDate.getMonth(),
-    1
-  );
-  const lastDayOfMonth = new Date(
-    selectedDate.getFullYear(),
-    selectedDate.getMonth() + 1,
-    0
-  );
-  const daysInMonth = lastDayOfMonth.getDate();
-  const startDayOfWeek = firstDayOfMonth.getDay(); // 0 = domingo, 1 = lunes, etc.
+  // Actualizar la matriz de días cuando cambia el mes actual
+  useEffect(() => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = startOfWeek(monthStart, { locale: es });
+    const endDate = endOfWeek(monthEnd, { locale: es });
 
-  // Ajustar para que la semana empiece en lunes (0 = lunes, 6 = domingo)
-  const adjustedStartDay = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
+    const rows: Date[][] = [];
+    let days: Date[] = [];
+    let day = startDate;
 
-  const totalDaysToShow = daysInMonth + adjustedStartDay;
-  const totalWeeks = Math.ceil(totalDaysToShow / 7);
+    while (day <= endDate) {
+      for (let i = 0; i < 7; i++) {
+        days.push(day);
+        day = addDays(day, 1);
+      }
+      rows.push(days);
+      days = [];
+    }
 
-  // Navegación entre meses
-  const goToPreviousMonth = () => {
-    const newDate = new Date(selectedDate);
-    newDate.setMonth(newDate.getMonth() - 1);
-    onDateSelect(newDate);
-  };
+    setCalendarDays(rows);
+  }, [currentMonth]);
 
-  const goToNextMonth = () => {
-    const newDate = new Date(selectedDate);
-    newDate.setMonth(newDate.getMonth() + 1);
-    onDateSelect(newDate);
-  };
-
-  const goToToday = () => {
-    onDateSelect(new Date());
-  };
-
-  // Calcular visitas por día
-  const getVisitsForDay = (day: number): Visit[] => {
-    if (!visits || !Array.isArray(visits)) return [];
-
-    const date = new Date(
-      selectedDate.getFullYear(),
-      selectedDate.getMonth(),
-      day
-    );
-
+  // Función para determinar el número de visitas en un día específico
+  const getVisitCountForDay = (day: Date): number => {
     return visits.filter((visit) => {
-      if (!visit || !visit.date) return false;
-
       const visitDate =
         visit.date instanceof Date ? visit.date : new Date(visit.date);
-
-      return (
-        visitDate.getDate() === date.getDate() &&
-        visitDate.getMonth() === date.getMonth() &&
-        visitDate.getFullYear() === date.getFullYear()
-      );
-    });
+      return isSameDay(day, visitDate);
+    }).length;
   };
 
-  // Dibujar el calendario
-  const days = Array.from({ length: totalWeeks * 7 }, (_, i) => {
-    const day = i - adjustedStartDay + 1;
-    const isCurrentMonth = day > 0 && day <= daysInMonth;
-    const date = new Date(
-      selectedDate.getFullYear(),
-      selectedDate.getMonth(),
-      day
+  // Renderizar los días del calendario
+  const renderDays = () => {
+    const days = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+    return (
+      <div className="grid grid-cols-7 mb-2">
+        {days.map((day) => (
+          <div key={day} className="text-center font-medium text-sm py-2">
+            {day}
+          </div>
+        ))}
+      </div>
     );
-    const isSelected =
-      date.getDate() === selectedDate.getDate() &&
-      date.getMonth() === selectedDate.getMonth() &&
-      date.getFullYear() === selectedDate.getFullYear();
-    const dayVisits = isCurrentMonth ? getVisitsForDay(day) : [];
+  };
 
-    return {
-      day,
-      isCurrentMonth,
-      isTodayDate: isToday(date),
-      isSelected,
-      date,
-      visits: dayVisits,
-    };
-  });
+  // Renderizar las celdas del calendario
+  const renderCells = () => {
+    return (
+      <div>
+        {calendarDays.map((row, rowIndex) => (
+          <div key={`row-${rowIndex}`} className="grid grid-cols-7">
+            {row.map((day, dayIndex) => {
+              const visitCount = getVisitCountForDay(day);
 
-  // Nombres de los días de la semana (empezando en lunes)
-  const weekDays = ["L", "M", "X", "J", "V", "S", "D"];
+              return (
+                <div
+                  key={`cell-${rowIndex}-${dayIndex}`}
+                  className={cn(
+                    "calendar-day h-14 border p-1 relative cursor-pointer transition-colors",
+                    !isSameMonth(day, currentMonth) &&
+                      "text-muted-foreground opacity-50",
+                    isSameDay(day, selectedDate) && "selected",
+                    isToday(day) && "border-blue-500 dark:border-blue-400"
+                  )}
+                  onClick={() => onDateSelect(day)}
+                >
+                  <div className="flex flex-col h-full">
+                    <span
+                      className={cn(
+                        "text-right text-sm",
+                        isToday(day) &&
+                          "font-bold text-blue-600 dark:text-blue-400"
+                      )}
+                    >
+                      {format(day, "d")}
+                    </span>
+
+                    {visitCount > 0 && (
+                      <div className="mt-auto flex justify-center">
+                        <span className="visits-indicator">{visitCount}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="w-full">
-      {/* Cabecera del calendario */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-medium">
-          {format(selectedDate, "MMMM yyyy", { locale: es })}
-        </h3>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-7 w-7"
-            onClick={goToPreviousMonth}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="sr-only">Mes anterior</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={goToToday}
-          >
-            Hoy
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-7 w-7"
-            onClick={goToNextMonth}
-          >
-            <ChevronRight className="h-4 w-4" />
-            <span className="sr-only">Mes siguiente</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Calendario */}
-      <div className="w-full overflow-hidden rounded-lg border border-border bg-background shadow-sm">
-        {/* Días de la semana */}
-        <div className="grid grid-cols-7 border-b">
-          {weekDays.map((day, index) => (
-            <div
-              key={index}
-              className="h-10 text-center text-xs font-medium text-muted-foreground p-2"
-            >
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* Días del mes */}
-        <div className="grid grid-cols-7 auto-rows-fr">
-          {days.map((day, index) => (
-            <div
-              key={index}
-              className={cn(
-                "relative border border-border/50 p-1 text-center calendar-day",
-                !day.isCurrentMonth && "text-muted-foreground opacity-50",
-                day.isSelected && "selected",
-                (index + 1) % 7 === 0 && "border-r",
-                index >= days.length - 7 && "border-b"
-              )}
-              onClick={() => {
-                if (day.isCurrentMonth) {
-                  onDateSelect(day.date);
-                }
-              }}
-            >
-              <div
-                className={cn(
-                  "flex h-full flex-col items-center justify-start pt-1",
-                  day.isCurrentMonth ? "cursor-pointer" : "pointer-events-none"
-                )}
-              >
-                <span
-                  className={cn(
-                    "grid h-6 w-6 place-content-center rounded-full text-xs",
-                    day.isTodayDate &&
-                      "bg-primary text-primary-foreground font-medium",
-                    day.isSelected && !day.isTodayDate && "bg-muted font-medium"
-                  )}
-                >
-                  {day.isCurrentMonth ? day.day : ""}
-                </span>
-
-                {/* Indicador de visitas */}
-                {day.visits && day.visits.length > 0 && (
-                  <span
-                    className={cn(
-                      "visits-indicator mt-1",
-                      day.visits.some((v) => v.type === "videollamada") &&
-                        "text-teal-600 bg-teal-100 dark:text-teal-400 dark:bg-teal-900/20",
-                      day.visits.every((v) => v.type === "presencial") &&
-                        "text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20"
-                    )}
-                  >
-                    {day.visits.length}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {renderDays()}
+      {renderCells()}
     </div>
   );
 }

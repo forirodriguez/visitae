@@ -1,3 +1,4 @@
+//src/components/admin/calendar/visit-dialog.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -31,17 +32,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarIcon, Clock } from "lucide-react";
+import { AlertCircle, CalendarIcon, Clock, Loader2 } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { cn } from "@/lib/utils";
 import { Visit } from "@/types/visits";
-import { mockProperties } from "@/lib/mock-data/properties";
+import { useProperties } from "@/hooks/useProperties";
+import { useVisitConflictCheck } from "@/hooks/useVisits";
 
 // Esquema de validación para el formulario
 const formSchema = z.object({
@@ -114,10 +117,13 @@ export default function VisitDialog({
   onSave?: (visit: Visit) => void;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [conflictError, setConflictError] = useState<string | null>(null);
 
-  // Por ahora usamos mockProperties hasta que implementemos React Query
-  const properties = mockProperties;
-  const isLoadingProperties = false;
+  // Usar el hook para verificar conflictos de horarios
+  const { checkConflict, checking: checkingConflict } = useVisitConflictCheck();
+
+  // Obtener propiedades desde el backend
+  const { properties, isLoading: isLoadingProperties } = useProperties();
 
   // Crear formulario con valores por defecto
   const form = useForm<z.infer<typeof formSchema>>({
@@ -131,8 +137,8 @@ export default function VisitDialog({
       clientName: "",
       clientEmail: "",
       clientPhone: "",
-      clientId: "client-1", // Por defecto usamos el cliente 1 (se puede cambiar)
-      agentId: "agent-001", // Agente por defecto (se puede cambiar)
+      clientId: "client-1", // Por defecto usamos el cliente 1
+      agentId: "agent-001", // Agente por defecto
       notes: "",
     },
   });
@@ -175,15 +181,59 @@ export default function VisitDialog({
         notes: "",
       });
     }
-  }, [existingVisit, selectedDate, form]);
+
+    // Limpiar errores de conflicto al abrir/cerrar el diálogo
+    setConflictError(null);
+  }, [existingVisit, selectedDate, form, open]);
+
+  // Verificar conflictos cuando cambia la fecha, hora o propiedad
+  const watchPropertyId = form.watch("propertyId");
+  const watchDate = form.watch("date");
+  const watchTime = form.watch("time");
+
+  useEffect(() => {
+    // Solo verificar si tenemos los 3 valores necesarios
+    if (!watchPropertyId || !watchDate || !watchTime) {
+      setConflictError(null);
+      return;
+    }
+
+    const checkForConflicts = async () => {
+      try {
+        const hasConflict = await checkConflict(
+          watchPropertyId,
+          watchDate,
+          watchTime,
+          existingVisit?.id
+        );
+
+        if (hasConflict) {
+          setConflictError(
+            "Ya existe una visita programada para esta propiedad en la fecha y hora seleccionadas."
+          );
+        } else {
+          setConflictError(null);
+        }
+      } catch (error) {
+        console.error("Error al verificar conflictos:", error);
+      }
+    };
+
+    checkForConflicts();
+  }, [watchPropertyId, watchDate, watchTime, existingVisit?.id, checkConflict]);
 
   // Manejar envío del formulario
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Verificar si hay conflictos
+    if (conflictError) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       // Obtener los datos de la propiedad seleccionada
-      const selectedProperty = mockProperties.find(
+      const selectedProperty = properties.find(
         (p) => p.id === values.propertyId
       );
 
@@ -212,7 +262,7 @@ export default function VisitDialog({
 
       // Llamar al callback de guardado si existe
       if (onSave) {
-        onSave(visitData);
+        await onSave(visitData);
       }
 
       // Cerrar el diálogo
@@ -265,6 +315,13 @@ export default function VisitDialog({
           </DialogTitle>
         </DialogHeader>
 
+        {conflictError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{conflictError}</AlertDescription>
+          </Alert>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {/* Selección de Propiedad */}
@@ -277,19 +334,27 @@ export default function VisitDialog({
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
-                    disabled={isLoadingProperties}
+                    disabled={isLoadingProperties || isSubmitting}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecciona una propiedad" />
+                        {isLoadingProperties ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Cargando propiedades...</span>
+                          </div>
+                        ) : (
+                          <SelectValue placeholder="Selecciona una propiedad" />
+                        )}
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {properties.map((property) => (
-                        <SelectItem key={property.id} value={property.id}>
-                          {property.title}
-                        </SelectItem>
-                      ))}
+                      {properties &&
+                        properties.map((property) => (
+                          <SelectItem key={property.id} value={property.id}>
+                            {property.title}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -314,6 +379,7 @@ export default function VisitDialog({
                               "pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground"
                             )}
+                            disabled={isSubmitting}
                           >
                             {field.value ? (
                               format(field.value, "PPP", { locale: es })
@@ -348,6 +414,7 @@ export default function VisitDialog({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      disabled={isSubmitting}
                     >
                       <FormControl>
                         <SelectTrigger className="w-full">
@@ -380,6 +447,7 @@ export default function VisitDialog({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      disabled={isSubmitting}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -407,6 +475,7 @@ export default function VisitDialog({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      disabled={isSubmitting}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -439,6 +508,7 @@ export default function VisitDialog({
                       handleClientSelect(value);
                     }}
                     defaultValue={field.value}
+                    disabled={isSubmitting}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -467,7 +537,7 @@ export default function VisitDialog({
                   <FormItem>
                     <FormLabel>Nombre del Cliente</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -481,7 +551,7 @@ export default function VisitDialog({
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" {...field} />
+                      <Input type="email" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -495,7 +565,7 @@ export default function VisitDialog({
                   <FormItem>
                     <FormLabel>Teléfono</FormLabel>
                     <FormControl>
-                      <Input type="tel" {...field} />
+                      <Input type="tel" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -515,6 +585,7 @@ export default function VisitDialog({
                       placeholder="Información adicional sobre la visita"
                       className="resize-none"
                       {...field}
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -527,16 +598,24 @@ export default function VisitDialog({
                 variant="outline"
                 type="button"
                 onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
+                disabled={isSubmitting || checkingConflict}
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting
-                  ? "Guardando..."
-                  : existingVisit
-                    ? "Actualizar Visita"
-                    : "Programar Visita"}
+              <Button
+                type="submit"
+                disabled={isSubmitting || checkingConflict || !!conflictError}
+              >
+                {isSubmitting || checkingConflict ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {isSubmitting ? "Guardando..." : "Verificando..."}
+                  </div>
+                ) : existingVisit ? (
+                  "Actualizar Visita"
+                ) : (
+                  "Programar Visita"
+                )}
               </Button>
             </DialogFooter>
           </form>

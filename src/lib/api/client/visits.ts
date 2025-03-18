@@ -1,12 +1,9 @@
+// src/lib/api/client/visits.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Visit, VisitStatus, VisitType } from "@/types/visits";
+import { VisitFilters } from "@/hooks/useVisits";
 
-// Tipos para las respuestas de la API
-type ApiResponse<T> = {
-  data: T;
-  success: boolean;
-};
-
+// Tipo para errores de la API
 type ApiErrorResponse = {
   error: string;
   message?: string;
@@ -14,7 +11,7 @@ type ApiErrorResponse = {
 };
 
 // Tipo para eventos del calendario
-type CalendarEvent = {
+export type CalendarEvent = {
   id: string;
   title: string;
   start: string;
@@ -34,10 +31,11 @@ type CalendarEvent = {
   };
   notes?: string;
   agentId?: string;
+  agentName?: string;
 };
 
 // Tipo para crear/actualizar visitas
-type VisitInput = {
+export type VisitInput = {
   date: string;
   time: string;
   type: VisitType;
@@ -50,103 +48,68 @@ type VisitInput = {
 
 // FUNCIONES PARA OBTENER DATOS
 
-// Obtener todas las visitas (con filtros opcionales)
-export async function fetchVisits(filters?: {
-  propertyId?: string;
-  status?: VisitStatus;
-  startDate?: string;
-  endDate?: string;
-}): Promise<Visit[]> {
-  // Construir parámetros de consulta
+// Procesar filtros para la API
+function processFilters(filters?: VisitFilters): URLSearchParams {
   const queryParams = new URLSearchParams();
 
-  if (filters?.propertyId) queryParams.set("propertyId", filters.propertyId);
-  if (filters?.status) queryParams.set("status", filters.status);
-  if (filters?.startDate) queryParams.set("startDate", filters.startDate);
-  if (filters?.endDate) queryParams.set("endDate", filters.endDate);
+  if (!filters) return queryParams;
 
-  // Intentar obtener datos de la API real
-  try {
-    const response = await fetch(`/api/visits?${queryParams}`);
+  if (filters.propertyId) queryParams.set("propertyId", filters.propertyId);
 
-    if (!response.ok) {
-      throw new Error("Error al obtener visitas");
+  // Procesar estado(s)
+  if (filters.status) {
+    if (typeof filters.status === "string" && filters.status.includes(",")) {
+      // Si es una cadena con múltiples estados separados por coma
+      queryParams.set("status", filters.status);
+    } else if (Array.isArray(filters.status)) {
+      // Si es un array de estados
+      queryParams.set("status", filters.status.join(","));
+    } else {
+      // Si es un solo estado
+      queryParams.set("status", filters.status);
     }
-
-    const { data } = (await response.json()) as ApiResponse<Visit[]>;
-    return data;
-  } catch (error) {
-    console.error("Error fetching visits from API, using mock data:", error);
-
-    // Datos mock de respaldo para desarrollo
-    return [
-      {
-        id: "v1",
-        propertyId: "prop1",
-        propertyTitle: "Apartamento de lujo con vistas al mar",
-        propertyImage:
-          "/placeholder.svg?height=300&width=400&text=Apartamento+Lujo",
-        clientName: "Carlos Rodríguez",
-        clientEmail: "carlos@example.com",
-        clientPhone: "600123456",
-        date: new Date(2025, 2, 10),
-        time: "10:00",
-        type: "presencial",
-        status: "confirmada",
-        agentId: "agent-001",
-        notes: "Cliente interesado en compra inmediata",
-      },
-      {
-        id: "v2",
-        propertyId: "prop2",
-        propertyTitle: "Casa adosada con jardín privado",
-        propertyImage:
-          "/placeholder.svg?height=300&width=400&text=Casa+Adosada",
-        clientName: "Laura Martínez",
-        clientEmail: "laura@example.com",
-        clientPhone: "600789012",
-        date: new Date(2025, 2, 10),
-        time: "12:30",
-        type: "presencial",
-        status: "pendiente",
-        agentId: "agent-001",
-      },
-    ];
   }
+
+  if (filters.startDate) queryParams.set("startDate", filters.startDate);
+  if (filters.endDate) queryParams.set("endDate", filters.endDate);
+
+  return queryParams;
+}
+
+// Obtener todas las visitas (con filtros opcionales)
+export async function fetchVisits(filters?: VisitFilters): Promise<Visit[]> {
+  // Construir parámetros de consulta
+  const queryParams = processFilters(filters);
+
+  const response = await fetch(`/api/visits?${queryParams}`);
+
+  if (!response.ok) {
+    throw new Error(`Error al obtener visitas: ${response.statusText}`);
+  }
+
+  const { data } = (await response.json()) as {
+    data: Visit[];
+    success: boolean;
+  };
+  return data;
 }
 
 // Obtener una visita específica por ID
-export async function fetchVisitById(id: string): Promise<Visit> {
-  try {
-    const response = await fetch(`/api/visits/${id}`);
+export async function fetchVisitById(
+  id: string,
+  includeProperty?: boolean
+): Promise<Visit> {
+  const url = includeProperty
+    ? `/api/visits/${id}?includeProperty=true`
+    : `/api/visits/${id}`;
+  const response = await fetch(url);
 
-    if (!response.ok) {
-      throw new Error("Error al obtener la visita");
-    }
-
-    const { data } = (await response.json()) as ApiResponse<Visit>;
-    return data;
-  } catch (error) {
-    console.error("Error fetching visit by ID, using mock data:", error);
-
-    // Dato mock de respaldo para desarrollo
-    return {
-      id,
-      propertyId: "prop1",
-      propertyTitle: "Apartamento de lujo con vistas al mar",
-      propertyImage:
-        "/placeholder.svg?height=300&width=400&text=Apartamento+Lujo",
-      clientName: "Carlos Rodríguez",
-      clientEmail: "carlos@example.com",
-      clientPhone: "600123456",
-      date: new Date(),
-      time: "10:00",
-      type: "presencial",
-      status: "confirmada",
-      agentId: "agent-001",
-      notes: "Visita de prueba",
-    };
+  if (!response.ok) {
+    throw new Error(`Error al obtener la visita: ${response.statusText}`);
   }
+
+  const { data } = (await response.json()) as { data: Visit; success: boolean };
+  return data;
 }
 
 // Obtener eventos para el calendario
@@ -163,103 +126,51 @@ export async function fetchCalendarEvents(
 
   if (agentId) queryParams.set("agentId", agentId);
 
-  try {
-    const response = await fetch(`/api/visits/calendar?${queryParams}`);
+  const response = await fetch(`/api/visits/calendar?${queryParams}`);
 
-    if (!response.ok) {
-      throw new Error("Error al obtener eventos del calendario");
-    }
-
-    const { data } = (await response.json()) as ApiResponse<CalendarEvent[]>;
-    return data;
-  } catch (error) {
-    console.error("Error fetching calendar events, using mock data:", error);
-
-    // Datos mock de respaldo para desarrollo
-    const startDate = new Date(start);
-
-    // Crear algunos eventos mock en el rango de fechas
-    const mockEvents: CalendarEvent[] = [
-      {
-        id: "v1",
-        title: "Apartamento de lujo - Carlos Rodríguez",
-        start: new Date(
-          startDate.getFullYear(),
-          startDate.getMonth(),
-          startDate.getDate() + 1,
-          10,
-          0
-        ).toISOString(),
-        end: new Date(
-          startDate.getFullYear(),
-          startDate.getMonth(),
-          startDate.getDate() + 1,
-          11,
-          0
-        ).toISOString(),
-        status: "confirmada",
-        type: "presencial",
-        property: {
-          id: "prop1",
-          title: "Apartamento de lujo con vistas al mar",
-          image: "/placeholder.svg?height=300&width=400&text=Apartamento+Lujo",
-          location: "Paseo Marítimo, Málaga",
-        },
-        client: {
-          name: "Carlos Rodríguez",
-          email: "carlos@example.com",
-          phone: "600123456",
-        },
-        notes: "Cliente interesado en compra inmediata",
-        agentId: "agent-001",
-      },
-      {
-        id: "v2",
-        title: "Casa adosada - Laura Martínez",
-        start: new Date(
-          startDate.getFullYear(),
-          startDate.getMonth(),
-          startDate.getDate() + 2,
-          12,
-          30
-        ).toISOString(),
-        end: new Date(
-          startDate.getFullYear(),
-          startDate.getMonth(),
-          startDate.getDate() + 2,
-          13,
-          30
-        ).toISOString(),
-        status: "pendiente",
-        type: "presencial",
-        property: {
-          id: "prop2",
-          title: "Casa adosada con jardín privado",
-          image: "/placeholder.svg?height=300&width=400&text=Casa+Adosada",
-          location: "Urbanización Los Pinos, Marbella",
-        },
-        client: {
-          name: "Laura Martínez",
-          email: "laura@example.com",
-          phone: "600789012",
-        },
-        agentId: "agent-001",
-      },
-    ];
-
-    return mockEvents;
+  if (!response.ok) {
+    throw new Error(
+      `Error al obtener eventos del calendario: ${response.statusText}`
+    );
   }
+
+  const { data } = (await response.json()) as {
+    data: CalendarEvent[];
+    success: boolean;
+  };
+  return data;
+}
+
+// Verificar conflictos de visitas
+export async function checkVisitConflict(
+  propertyId: string,
+  date: string,
+  time: string,
+  excludeVisitId?: string
+): Promise<boolean> {
+  let url = `/api/visits/check-conflict?propertyId=${propertyId}&date=${date}&time=${time}`;
+
+  if (excludeVisitId) {
+    url += `&excludeVisitId=${excludeVisitId}`;
+  }
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Error al verificar conflictos: ${response.statusText}`);
+  }
+
+  const { data } = (await response.json()) as {
+    data: { hasConflict: boolean };
+    success: boolean;
+  };
+  return data.hasConflict;
 }
 
 // HOOKS DE REACT QUERY
 
 // Hook para obtener todas las visitas
-export function useVisits(filters?: {
-  propertyId?: string;
-  status?: VisitStatus;
-  startDate?: string;
-  endDate?: string;
-}) {
+export function useVisits(filters?: VisitFilters) {
   return useQuery({
     queryKey: ["visits", filters],
     queryFn: () => fetchVisits(filters),
@@ -293,36 +204,26 @@ export function useCreateVisit() {
 
   return useMutation({
     mutationFn: async (visitData: VisitInput) => {
-      try {
-        const response = await fetch("/api/visits", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(visitData),
-        });
+      const response = await fetch("/api/visits", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(visitData),
+      });
 
-        if (!response.ok) {
-          const errorData: ApiErrorResponse = await response.json();
-          throw new Error(
-            errorData.message || errorData.error || "Error al crear la visita"
-          );
-        }
-
-        const { data } = (await response.json()) as ApiResponse<Visit>;
-        return data;
-      } catch (error) {
-        console.error("Error creating visit:", error);
-        // Para desarrollo, simular éxito incluso si hay error
-        return {
-          id: `new-${Date.now()}`,
-          propertyId: visitData.propertyId,
-          date: new Date(visitData.date),
-          time: visitData.time,
-          type: visitData.type,
-          status: visitData.status,
-        } as Visit;
+      if (!response.ok) {
+        const errorData: ApiErrorResponse = await response.json();
+        throw new Error(
+          errorData.message || errorData.error || "Error al crear la visita"
+        );
       }
+
+      const { data } = (await response.json()) as {
+        data: Visit;
+        success: boolean;
+      };
+      return data;
     },
     onSuccess: () => {
       // Invalidar consultas relacionadas para que se actualicen
@@ -344,32 +245,28 @@ export function useUpdateVisit() {
       id: string;
       data: Partial<VisitInput>;
     }) => {
-      try {
-        const response = await fetch(`/api/visits/${id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        });
+      const response = await fetch(`/api/visits/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
 
-        if (!response.ok) {
-          const errorData: ApiErrorResponse = await response.json();
-          throw new Error(
-            errorData.message ||
-              errorData.error ||
-              "Error al actualizar la visita"
-          );
-        }
-
-        const { data: updatedVisit } =
-          (await response.json()) as ApiResponse<Visit>;
-        return updatedVisit;
-      } catch (error) {
-        console.error("Error updating visit:", error);
-        // Para desarrollo, simular éxito incluso si hay error
-        return { id, ...data } as unknown as Visit;
+      if (!response.ok) {
+        const errorData: ApiErrorResponse = await response.json();
+        throw new Error(
+          errorData.message ||
+            errorData.error ||
+            "Error al actualizar la visita"
+        );
       }
+
+      const { data: updatedVisit } = (await response.json()) as {
+        data: Visit;
+        success: boolean;
+      };
+      return updatedVisit;
     },
     onSuccess: (_, variables) => {
       // Invalidar consultas relacionadas para que se actualicen
@@ -386,32 +283,28 @@ export function useUpdateVisitStatus() {
 
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: VisitStatus }) => {
-      try {
-        const response = await fetch(`/api/visits/${id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ status }),
-        });
+      const response = await fetch(`/api/visits/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
 
-        if (!response.ok) {
-          const errorData: ApiErrorResponse = await response.json();
-          throw new Error(
-            errorData.message ||
-              errorData.error ||
-              "Error al actualizar el estado"
-          );
-        }
-
-        const { data: updatedVisit } =
-          (await response.json()) as ApiResponse<Visit>;
-        return updatedVisit;
-      } catch (error) {
-        console.error("Error updating visit status:", error);
-        // Para desarrollo, simular éxito incluso si hay error
-        return { id, status } as Visit;
+      if (!response.ok) {
+        const errorData: ApiErrorResponse = await response.json();
+        throw new Error(
+          errorData.message ||
+            errorData.error ||
+            "Error al actualizar el estado"
+        );
       }
+
+      const { data: updatedVisit } = (await response.json()) as {
+        data: Visit;
+        success: boolean;
+      };
+      return updatedVisit;
     },
     onSuccess: (_, variables) => {
       // Invalidar consultas relacionadas para que se actualicen
@@ -428,26 +321,18 @@ export function useDeleteVisit() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      try {
-        const response = await fetch(`/api/visits/${id}`, {
-          method: "DELETE",
-        });
+      const response = await fetch(`/api/visits/${id}`, {
+        method: "DELETE",
+      });
 
-        if (!response.ok) {
-          const errorData: ApiErrorResponse = await response.json();
-          throw new Error(
-            errorData.message ||
-              errorData.error ||
-              "Error al eliminar la visita"
-          );
-        }
-
-        return true;
-      } catch (error) {
-        console.error("Error deleting visit:", error);
-        // Para desarrollo, simular éxito incluso si hay error
-        return true;
+      if (!response.ok) {
+        const errorData: ApiErrorResponse = await response.json();
+        throw new Error(
+          errorData.message || errorData.error || "Error al eliminar la visita"
+        );
       }
+
+      return true;
     },
     onSuccess: () => {
       // Invalidar consultas relacionadas para que se actualicen

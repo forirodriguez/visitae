@@ -1,51 +1,89 @@
+//src/components/admin/calendar/visits-list.tsx
 "use client";
 
-import { Visit, VisitStatus } from "@/types/visits";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  CheckCircle,
-  Clock,
-  Edit,
-  Phone,
-  User,
-  Video,
-  XCircle,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Pencil, MoreVertical, MapPin, Video, Loader2 } from "lucide-react";
+import { Visit, VisitStatus } from "@/types/visits";
 
 interface VisitListProps {
   visits: Visit[];
-  onEditVisit?: (visit: Visit) => void;
-  onUpdateStatus?: (visit: Visit, status: VisitStatus) => void;
+  onEditVisit: (visit: Visit) => void;
+  onUpdateStatus: (visit: Visit, newStatus: VisitStatus) => Promise<void>;
+  onDeleteVisit?: (visitId: string) => Promise<void>;
+  isLoading?: boolean;
 }
 
-export default function VisitList({
-  visits = [],
+export default function VisitsList({
+  visits,
   onEditVisit,
   onUpdateStatus,
+  onDeleteVisit,
+  isLoading = false,
 }: VisitListProps) {
-  // Obtener las visitas ordenadas por hora
-  const sortedVisits = [...visits].sort((a, b) => {
-    const timeA = a.time.split(":").map(Number);
-    const timeB = b.time.split(":").map(Number);
-    return timeA[0] * 60 + timeA[1] - (timeB[0] * 60 + timeB[1]);
-  });
+  // Estado para el diálogo de confirmación de eliminación
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [visitToDelete, setVisitToDelete] = useState<Visit | null>(null);
+  // Estado para controlar qué visita está cambiando su estado
+  const [processingVisit, setProcessingVisit] = useState<string | null>(null);
 
-  // Función para formatear la hora
-  const formatTime = (time: string) => {
-    return time.replace(/:/g, ":");
+  // Manejador para confirmar eliminación
+  const handleConfirmDelete = async () => {
+    if (visitToDelete && onDeleteVisit) {
+      try {
+        setProcessingVisit(visitToDelete.id);
+        await onDeleteVisit(visitToDelete.id);
+      } finally {
+        setProcessingVisit(null);
+        setVisitToDelete(null);
+        setDeleteDialogOpen(false);
+      }
+    }
   };
 
-  // Obtener etiqueta según el estado
-  const getStatusBadge = (status: VisitStatus) => {
+  // Manejador para iniciar la eliminación
+  const handleDeleteVisit = (visit: Visit) => {
+    setVisitToDelete(visit);
+    setDeleteDialogOpen(true);
+  };
+
+  // Manejador para actualizar estado
+  const handleUpdateStatus = async (visit: Visit, newStatus: VisitStatus) => {
+    try {
+      setProcessingVisit(visit.id);
+      await onUpdateStatus(visit, newStatus);
+    } finally {
+      setProcessingVisit(null);
+    }
+  };
+
+  // Función para renderizar el estado de la visita
+  const renderVisitStatus = (status: VisitStatus) => {
     switch (status) {
       case "pendiente":
         return (
           <Badge
             variant="outline"
-            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500 border-yellow-300 dark:border-yellow-800"
+            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
           >
             Pendiente
           </Badge>
@@ -54,7 +92,7 @@ export default function VisitList({
         return (
           <Badge
             variant="outline"
-            className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-500 border-green-300 dark:border-green-800"
+            className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
           >
             Confirmada
           </Badge>
@@ -63,7 +101,7 @@ export default function VisitList({
         return (
           <Badge
             variant="outline"
-            className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-500 border-red-300 dark:border-red-800"
+            className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
           >
             Cancelada
           </Badge>
@@ -72,159 +110,168 @@ export default function VisitList({
         return (
           <Badge
             variant="outline"
-            className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-500 border-blue-300 dark:border-blue-800"
+            className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
           >
             Completada
           </Badge>
         );
       default:
-        return null;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  // Si no hay visitas para mostrar
-  if (sortedVisits.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        No hay visitas programadas para esta fecha
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-3">
-      {sortedVisits.map((visit) => (
-        <Card
-          key={visit.id}
-          className={cn(
-            "p-3 border-l-4 relative",
-            visit.status === "pendiente" && "visit-status-pending",
-            visit.status === "confirmada" && "visit-status-confirmed",
-            visit.status === "cancelada" && "visit-status-cancelled",
-            visit.status === "completada" && "visit-status-completed",
-            visit.type === "videollamada"
-              ? "video-call-event"
-              : "in-person-event"
-          )}
-        >
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-medium">{formatTime(visit.time)}</span>
-                {getStatusBadge(visit.status)}
-                {visit.type === "videollamada" ? (
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center gap-1"
+    <>
+      <div className="space-y-3">
+        {visits.map((visit) => (
+          <div
+            key={visit.id}
+            className={`p-3 rounded-md border ${
+              visit.status === "confirmada"
+                ? "visit-status-confirmed"
+                : visit.status === "pendiente"
+                  ? "visit-status-pending"
+                  : visit.status === "cancelada"
+                    ? "visit-status-cancelled"
+                    : "visit-status-completed"
+            }`}
+          >
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <div className="font-medium">{visit.propertyTitle}</div>
+                <div className="text-sm text-muted-foreground">
+                  {visit.time}h ·{" "}
+                  <span className="inline-flex items-center">
+                    {visit.type === "presencial" ? (
+                      <>
+                        <MapPin className="h-3 w-3 mr-1" /> Presencial
+                      </>
+                    ) : (
+                      <>
+                        <Video className="h-3 w-3 mr-1" /> Videollamada
+                      </>
+                    )}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                {renderVisitStatus(visit.status)}
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    asChild
+                    disabled={isLoading || processingVisit === visit.id}
                   >
-                    <Video className="h-3 w-3" />
-                    <span>Video</span>
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
-                    <User className="h-3 w-3" />
-                    <span>Presencial</span>
-                  </Badge>
-                )}
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      {processingVisit === visit.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <MoreVertical className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onEditVisit(visit)}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Editar visita
+                    </DropdownMenuItem>
+
+                    {/* Estados disponibles según estado actual */}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Cambiar estado</DropdownMenuLabel>
+
+                    {visit.status !== "pendiente" && (
+                      <DropdownMenuItem
+                        onClick={() => handleUpdateStatus(visit, "pendiente")}
+                      >
+                        Marcar como pendiente
+                      </DropdownMenuItem>
+                    )}
+
+                    {visit.status !== "confirmada" && (
+                      <DropdownMenuItem
+                        onClick={() => handleUpdateStatus(visit, "confirmada")}
+                      >
+                        Marcar como confirmada
+                      </DropdownMenuItem>
+                    )}
+
+                    {visit.status !== "completada" && (
+                      <DropdownMenuItem
+                        onClick={() => handleUpdateStatus(visit, "completada")}
+                      >
+                        Marcar como completada
+                      </DropdownMenuItem>
+                    )}
+
+                    {visit.status !== "cancelada" && (
+                      <DropdownMenuItem
+                        onClick={() => handleUpdateStatus(visit, "cancelada")}
+                      >
+                        Marcar como cancelada
+                      </DropdownMenuItem>
+                    )}
+
+                    {/* Opción de eliminar */}
+                    {onDeleteVisit && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-600 dark:text-red-400"
+                          onClick={() => handleDeleteVisit(visit)}
+                        >
+                          Eliminar visita
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <h4 className="font-medium">{visit.propertyTitle}</h4>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                <User className="h-3 w-3" />
-                <span>{visit.clientName}</span>
-              </div>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Phone className="h-3 w-3" />
-                <span>{visit.clientPhone}</span>
-              </div>
-              {visit.notes && (
-                <p className="text-sm mt-2 text-muted-foreground">
-                  {visit.notes}
-                </p>
-              )}
             </div>
-            <div className="flex">
-              {onEditVisit && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
-                  onClick={() => onEditVisit(visit)}
-                >
-                  <Edit className="h-4 w-4" />
-                  <span className="sr-only">Editar</span>
-                </Button>
-              )}
-            </div>
+
+            <div className="text-sm font-medium">{visit.clientName}</div>
+
+            {visit.notes && (
+              <div className="text-sm mt-2 text-muted-foreground">
+                <span className="font-medium">Notas:</span> {visit.notes}
+              </div>
+            )}
           </div>
+        ))}
 
-          {/* Acciones según el estado actual */}
-          {onUpdateStatus && (
-            <div className="mt-3 flex gap-2 justify-end">
-              {visit.status === "pendiente" && (
-                <>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs"
-                    onClick={() => onUpdateStatus(visit, "confirmada")}
-                  >
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Confirmar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs text-red-600 hover:text-red-700"
-                    onClick={() => onUpdateStatus(visit, "cancelada")}
-                  >
-                    <XCircle className="h-3 w-3 mr-1" />
-                    Cancelar
-                  </Button>
-                </>
-              )}
+        {visits.length === 0 && !isLoading && (
+          <div className="text-center py-4 text-muted-foreground">
+            No hay visitas programadas para este día
+          </div>
+        )}
+      </div>
 
-              {visit.status === "confirmada" && (
-                <>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs"
-                    onClick={() => onUpdateStatus(visit, "completada")}
-                  >
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Completar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs text-red-600 hover:text-red-700"
-                    onClick={() => onUpdateStatus(visit, "cancelada")}
-                  >
-                    <XCircle className="h-3 w-3 mr-1" />
-                    Cancelar
-                  </Button>
-                </>
-              )}
-
-              {(visit.status === "cancelada" ||
-                visit.status === "completada") && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs"
-                  onClick={() => onUpdateStatus(visit, "pendiente")}
-                >
-                  <Clock className="h-3 w-3 mr-1" />
-                  Reabrir
-                </Button>
-              )}
-            </div>
-          )}
-        </Card>
-      ))}
-    </div>
+      {/* Diálogo de confirmación para eliminar */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar esta visita?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente
+              esta visita programada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {processingVisit ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
