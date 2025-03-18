@@ -24,7 +24,7 @@ const recentActivities: ActivityItem[] = [
     property: {
       id: "prop1",
       title: "Apartamento de lujo con vistas al mar",
-      image: "/placeholder.svg?height=40&width=40&text=P1",
+      image: "?height=40&width=40&text=P1",
     },
     user: {
       name: "Carlos Rodríguez",
