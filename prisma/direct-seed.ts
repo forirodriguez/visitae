@@ -4,7 +4,7 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
-// Propiedades expandidas
+// Propiedades expandidas con imágenes reales
 const seedProperties = [
   // Propiedades originales
   {
@@ -12,7 +12,8 @@ const seedProperties = [
     title: "Apartamento de lujo con vistas al mar",
     price: 450000,
     location: "Paseo Marítimo, Málaga",
-    image: "/placeholder.svg?height=300&width=400&text=Apartamento+Lujo",
+    image:
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop",
     bedrooms: 3,
     bathrooms: 2,
     area: 120,
@@ -37,7 +38,8 @@ const seedProperties = [
     title: "Casa adosada con jardín privado",
     price: 320000,
     location: "Urbanización Los Pinos, Marbella",
-    image: "/placeholder.svg?height=300&width=400&text=Casa+Adosada",
+    image:
+      "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=2070&auto=format&fit=crop",
     bedrooms: 4,
     bathrooms: 3,
     area: 180,
@@ -61,7 +63,8 @@ const seedProperties = [
     title: "Ático dúplex con terraza panorámica",
     price: 550000,
     location: "Centro Histórico, Sevilla",
-    image: "/placeholder.svg?height=300&width=400&text=Ático+Dúplex",
+    image:
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=2080&auto=format&fit=crop",
     bedrooms: 2,
     bathrooms: 2,
     area: 95,
@@ -87,7 +90,8 @@ const seedProperties = [
     title: "Piso reformado en zona exclusiva",
     price: 280000,
     location: "Barrio Salamanca, Madrid",
-    image: "/placeholder.svg?height=300&width=400&text=Piso+Reformado",
+    image:
+      "https://images.unsplash.com/photo-1493809842364-78817add7ffb?q=80&w=2070&auto=format&fit=crop",
     bedrooms: 2,
     bathrooms: 1,
     area: 85,
@@ -111,7 +115,8 @@ const seedProperties = [
     title: "Villa de lujo con piscina privada",
     price: 890000,
     location: "La Zagaleta, Marbella",
-    image: "/placeholder.svg?height=300&width=400&text=Villa+Lujo",
+    image:
+      "https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=2070&auto=format&fit=crop",
     bedrooms: 5,
     bathrooms: 4,
     area: 350,
@@ -137,7 +142,8 @@ const seedProperties = [
     title: "Chalet independiente con amplio jardín",
     price: 420000,
     location: "Sierra de Guadarrama, Madrid",
-    image: "/placeholder.svg?height=300&width=400&text=Chalet+Jardín",
+    image:
+      "https://images.unsplash.com/photo-1568605114967-8130f3a36994?q=80&w=2070&auto=format&fit=crop",
     bedrooms: 4,
     bathrooms: 3,
     area: 220,
@@ -156,7 +162,8 @@ const seedProperties = [
     title: "Casa rural con encanto",
     price: 180000,
     location: "Sierra de Aracena, Huelva",
-    image: "/placeholder.svg?height=300&width=400&text=Casa+Rural",
+    image:
+      "https://images.unsplash.com/photo-1531971589569-0d9370cbe1e5?q=80&w=1981&auto=format&fit=crop",
     bedrooms: 3,
     bathrooms: 2,
     area: 150,
@@ -177,7 +184,8 @@ const seedProperties = [
     title: "Loft industrial en zona céntrica",
     price: 1200,
     location: "Poblenou, Barcelona",
-    image: "/placeholder.svg?height=300&width=400&text=Loft+Industrial",
+    image:
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=2070&auto=format&fit=crop",
     bedrooms: 1,
     bathrooms: 1,
     area: 90,
@@ -201,7 +209,8 @@ const seedProperties = [
     title: "Apartamento con terraza en el centro",
     price: 1500,
     location: "Gran Vía, Madrid",
-    image: "/placeholder.svg?height=300&width=400&text=Apartamento+Centro",
+    image:
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=2070&auto=format&fit=crop",
     bedrooms: 2,
     bathrooms: 1,
     area: 75,
@@ -220,7 +229,8 @@ const seedProperties = [
     title: "Estudio amueblado cerca de universidad",
     price: 850,
     location: "Moncloa, Madrid",
-    image: "/placeholder.svg?height=300&width=400&text=Estudio+Moncloa",
+    image:
+      "https://images.unsplash.com/photo-1560185007-cde436f6a4d0?q=80&w=2070&auto=format&fit=crop",
     bedrooms: 0,
     bathrooms: 1,
     area: 45,
@@ -239,7 +249,8 @@ const seedProperties = [
     title: "Duplex de lujo en zona financiera",
     price: 3200,
     location: "AZCA, Madrid",
-    image: "/placeholder.svg?height=300&width=400&text=Duplex+AZCA",
+    image:
+      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2053&auto=format&fit=crop",
     bedrooms: 3,
     bathrooms: 2,
     area: 130,
@@ -258,7 +269,8 @@ const seedProperties = [
     title: "Piso compartido para profesionales",
     price: 450,
     location: "Chamberí, Madrid",
-    image: "/placeholder.svg?height=300&width=400&text=Piso+Compartido",
+    image:
+      "https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=2070&auto=format&fit=crop",
     bedrooms: 4,
     bathrooms: 2,
     area: 120,
@@ -321,14 +333,15 @@ const seedAvailability = {
   },
 };
 
-// Datos de agentes adicionales
+// Datos de agentes adicionales con imágenes de perfil reales
 const additionalAgents = [
   {
     id: "agent-002",
     email: "maria@visitae.com",
     name: "María López",
     phone: "600222333",
-    avatarUrl: "/placeholder.svg?height=100&width=100&text=ML",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=987&auto=format&fit=crop",
     role: "agent",
     password: "agente123",
   },
@@ -337,7 +350,8 @@ const additionalAgents = [
     email: "juan@visitae.com",
     name: "Juan Martínez",
     phone: "600333444",
-    avatarUrl: "/placeholder.svg?height=100&width=100&text=JM",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=987&auto=format&fit=crop",
     role: "agent",
     password: "agente123",
   },
@@ -701,7 +715,8 @@ async function main() {
         email: "carlos@visitae.com",
         name: "Carlos García",
         phone: "600111222",
-        avatarUrl: "/placeholder.svg?height=100&width=100&text=CG",
+        avatarUrl:
+          "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=987&auto=format&fit=crop",
         role: "agent",
         password: "agente123",
       },

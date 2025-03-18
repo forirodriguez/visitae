@@ -15,11 +15,11 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "db:seed": "ts-node prisma/direct-seed.ts"
+    "db:seed": "prisma db seed"
   },
- "prisma": {
-  "seed": "ts-node prisma/direct-seed.ts"
-},
+  "prisma": {
+    "seed": "tsx prisma/direct-seed.ts"
+  },
   "dependencies": {
     "@floating-ui/react": "^0.27.5",
     "@formatjs/intl-localematcher": "^0.6.0",
@@ -89,6 +89,7 @@
     "prisma": "^5.9.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.3",
     "typescript": "^5"
   }
 }

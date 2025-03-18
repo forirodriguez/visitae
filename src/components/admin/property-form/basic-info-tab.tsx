@@ -36,7 +36,7 @@ export default function BasicInfoTab({
     { value: "duplex", label: "Dúplex" },
     { value: "atico", label: "Ático" },
     { value: "estudio", label: "Estudio" },
-    { value: "local", label: 'Local comercial" },l: "Local comercial' },
+    { value: "local", label: "Local comercial" },
     { value: "oficina", label: "Oficina" },
     { value: "terreno", label: "Terreno" },
   ];
