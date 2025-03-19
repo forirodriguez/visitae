@@ -28,7 +28,7 @@ interface CalendarContainerProps {
   onAddVisit?: (date?: Date) => void;
   onEditVisit?: (visitId: string) => void;
   onUpdateVisitStatus?: (visitId: string, status: VisitStatus) => Promise<void>;
-  onDeleteVisit?: (visitId: string) => void | Promise<void>; // Modificado para aceptar ambos tipos
+  onDeleteVisit?: (visitId: string) => void | Promise<void>;
   isLoading?: boolean;
 }
 

@@ -109,13 +109,13 @@ export default function DashboardPage() {
     }
   };
 
-  // Manejador para actualizar estado de visita
-  const handleUpdateVisitStatus = async (
-    visit: Visit,
+  // Adaptador para CalendarContainer - convierte objetos Visit a visitId
+  const handleUpdateVisitStatusById = async (
+    visitId: string,
     newStatus: VisitStatus
   ) => {
     try {
-      await updateVisitStatus(visit.id, newStatus);
+      await updateVisitStatus(visitId, newStatus);
       toast.success(`Visita ${newStatus} correctamente`);
     } catch (error) {
       toast.error("Error al actualizar el estado de la visita");
@@ -213,7 +213,7 @@ export default function DashboardPage() {
               visits={visits}
               onAddVisit={handleAddVisit}
               onEditVisit={handleEditVisit}
-              onUpdateVisitStatus={handleUpdateVisitStatus}
+              onUpdateVisitStatus={handleUpdateVisitStatusById}
               onDeleteVisit={handleConfirmDelete}
               isLoading={operationsLoading}
             />
