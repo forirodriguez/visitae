@@ -20,6 +20,7 @@ import {
   useVisitOperations,
 } from "@/hooks/useVisits";
 import { toast } from "sonner";
+import { es } from "date-fns/locale";
 
 interface CalendarContainerProps {
   visits?: Visit[];
@@ -199,10 +200,7 @@ export default function CalendarContainer({
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="mx-2 font-medium">
-              {format(currentMonth, "MMMM yyyy", {
-                // eslint-disable-next-line @typescript-eslint/no-require-imports
-                locale: require("date-fns/locale/es"),
-              })}
+              {format(currentMonth, "MMMM yyyy", { locale: es })}
             </span>
             <Button
               variant="outline"
