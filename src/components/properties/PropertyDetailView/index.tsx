@@ -19,8 +19,8 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getFilteredProperties } from "@/lib/mock-data/properties";
 import PropertyCard from "@/components/properties/PropertyCard";
+import { useFilteredProperties } from "@/hooks/useProperties";
 
 interface PropertyDetailViewProps {
   property: Property;
@@ -32,9 +32,18 @@ export default function PropertyDetailView({
   locale,
 }: PropertyDetailViewProps) {
   const [isFavorite, setIsFavorite] = useState(false);
-  const [similarProperties, setSimilarProperties] = useState<Property[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [loadingSimilar, setLoadingSimilar] = useState(true);
+
+  // Usar el hook para obtener propiedades similares con filtros
+  const { properties: similarPropertiesData, isLoading: loadingSimilar } =
+    useFilteredProperties({
+      type: property.type,
+      minBedrooms: Math.max(property.bedrooms - 1, 1),
+    });
+
+  // Filtrar la propiedad actual y limitar a 3 elementos
+  const similarProperties = similarPropertiesData
+    ? similarPropertiesData.filter((p) => p.id !== property.id).slice(0, 3)
+    : [];
 
   // Verificar si la propiedad está en favoritos al cargar
   useEffect(() => {
@@ -42,29 +51,7 @@ export default function PropertyDetailView({
       const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
       setIsFavorite(favorites.includes(property.id));
     }
-
-    // Cargar propiedades similares
-    const fetchSimilarProperties = async () => {
-      try {
-        const filtered = await getFilteredProperties({
-          type: property.type,
-          minBedrooms: Math.max(property.bedrooms - 1, 1),
-        });
-
-        const similar = filtered
-          .filter((p) => p.id !== property.id)
-          .slice(0, 3);
-
-        setSimilarProperties(similar);
-      } catch (error) {
-        console.error("Error fetching similar properties:", error);
-      } finally {
-        setLoadingSimilar(false);
-      }
-    };
-
-    fetchSimilarProperties();
-  }, [property.id, property.type, property.bedrooms]);
+  }, [property.id]);
 
   // Función para alternar favoritos
   const toggleFavorite = () => {
@@ -492,9 +479,26 @@ export default function PropertyDetailView({
         <div className="mt-14">
           <h2 className="text-2xl font-bold mb-6">Propiedades similares</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {similarProperties.map((property) => (
-              <PropertyCard key={property.id} property={property} />
-            ))}
+            {loadingSimilar
+              ? // Skeleton loaders mientras se cargan las propiedades similares
+                Array(3)
+                  .fill(0)
+                  .map((_, index) => (
+                    <div
+                      key={index}
+                      className="rounded-xl overflow-hidden border border-gray-200"
+                    >
+                      <div className="h-48 bg-gray-200 animate-pulse"></div>
+                      <div className="p-4 space-y-2">
+                        <div className="h-4 bg-gray-200 animate-pulse rounded"></div>
+                        <div className="h-4 bg-gray-200 animate-pulse rounded w-3/4"></div>
+                        <div className="mt-2 h-6 bg-gray-200 animate-pulse rounded"></div>
+                      </div>
+                    </div>
+                  ))
+              : similarProperties.map((property) => (
+                  <PropertyCard key={property.id} property={property} />
+                ))}
           </div>
         </div>
       )}

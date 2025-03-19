@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Property } from "@/types/property";
-import { getFilteredProperties } from "@/lib/mock-data/properties";
 import PropertyCard from "@/components/properties/PropertyCard";
+import { useFilteredProperties } from "@/hooks/useProperties";
 
 interface SimilarPropertiesSectionProps {
   currentPropertyId: string;
@@ -15,32 +13,22 @@ export default function SimilarPropertiesSection({
   currentPropertyId,
   propertyType,
 }: SimilarPropertiesSectionProps) {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Utilizamos el hook useFilteredProperties para obtener propiedades desde la API
+  const {
+    properties: allProperties,
+    isLoading,
+    error,
+  } = useFilteredProperties({
+    type: propertyType,
+  });
 
-  useEffect(() => {
-    const fetchSimilarProperties = async () => {
-      setLoading(true);
-      try {
-        // Obtener propiedades del mismo tipo
-        const filtered = await getFilteredProperties({ type: propertyType });
-        // Filtrar la propiedad actual y limitar a 3
-        const similar = filtered
-          .filter((p) => p.id !== currentPropertyId)
-          .slice(0, 3);
+  // Filtrar la propiedad actual y limitar a 3
+  const properties = allProperties
+    ? allProperties.filter((p) => p.id !== currentPropertyId).slice(0, 3)
+    : [];
 
-        setProperties(similar);
-      } catch (error) {
-        console.error("Error fetching similar properties:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSimilarProperties();
-  }, [currentPropertyId, propertyType]);
-
-  if (loading) {
+  // Manejo de estado de carga
+  if (isLoading) {
     return (
       <div className="mt-14">
         <h2 className="text-2xl font-bold mb-6">Propiedades similares</h2>
@@ -56,6 +44,13 @@ export default function SimilarPropertiesSection({
     );
   }
 
+  // Manejo de errores
+  if (error) {
+    console.error("Error cargando propiedades similares:", error);
+    return null; // No mostrar nada en caso de error
+  }
+
+  // No mostrar la sección si no hay propiedades similares
   if (properties.length === 0) {
     return null;
   }

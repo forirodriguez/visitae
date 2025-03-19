@@ -1,138 +1,172 @@
-// src/utils/property-adapter.ts
-import { PropertyFormData } from "@/components/admin/property-form/property-form";
-import { Property } from "@/types/property";
+// src/lib/api/client/properties.ts
+import { Property, PropertyFilter } from "@/types/property";
 
-/**
- * Convierte los datos del formulario al formato de Property para la API
- */
-export function formDataToProperty(
-  formData: PropertyFormData
-): Omit<Property, "id"> {
-  // Seleccionar la imagen principal o la primera disponible
-  // Usamos || para proporcionar un fallback solo cuando es necesario
-  const mainImage =
-    formData.images.find((img) => img.isPrimary)?.url ||
-    (formData.images.length > 0 ? formData.images[0].url : "/placeholder.svg");
+// Función para obtener todas las propiedades con filtros opcionales
+export async function fetchProperties(
+  filters?: PropertyFilter
+): Promise<Property[]> {
+  try {
+    // Construir parámetros de consulta desde los filtros
+    const params = new URLSearchParams();
 
-  console.log("Imagen seleccionada para guardar:", mainImage);
+    if (filters?.type) params.append("type", filters.type);
+    if (filters?.minPrice !== undefined)
+      params.append("minPrice", filters.minPrice.toString());
+    if (filters?.maxPrice !== undefined)
+      params.append("maxPrice", filters.maxPrice.toString());
+    if (filters?.minBedrooms !== undefined)
+      params.append("minBedrooms", filters.minBedrooms.toString());
+    if (filters?.location) params.append("location", filters.location);
+    if (filters?.keyword) params.append("keyword", filters.keyword);
 
-  return {
-    title: formData.title,
-    description: formData.description,
-    price: parseFloat(formData.price) || 0,
-    type: formData.operationType,
-    propertyType: formData.propertyType,
-    location: `${formData.neighborhood ? formData.neighborhood + ", " : ""}${formData.city}`,
-    address: formData.address,
-    bedrooms: parseInt(formData.bedrooms) || 0,
-    bathrooms: parseInt(formData.bathrooms) || 0,
-    area: parseInt(formData.squareMetersBuilt) || 0,
-    image: mainImage,
-    features: formData.features,
-    isNew:
-      new Date(formData.publishDate).getTime() >
-      Date.now() - 30 * 24 * 60 * 60 * 1000, // Considera nueva si se publicó en los últimos 30 días
-    isFeatured: formData.isFeatured,
-    status: formData.status,
-  };
+    // Realizar la solicitud al endpoint
+    const response = await fetch(`/api/properties?${params.toString()}`);
+
+    if (!response.ok) {
+      throw new Error("Error al obtener propiedades");
+    }
+
+    const data = await response.json();
+    return data.data; // Asumiendo que la respuesta tiene una propiedad "data"
+  } catch (error) {
+    console.error("Error en fetchProperties:", error);
+    throw error;
+  }
 }
 
-/**
- * Versión para previsualización - incluye un ID temporal
- * Esta función se usa solo para la vista previa, no para la API
- */
-export function formDataToPropertyPreview(
-  formData: PropertyFormData
-): Property {
-  return {
-    id: "preview-id", // ID temporal para previsualización
-    ...formDataToProperty(formData),
-  };
-}
+// Función para obtener una propiedad por ID
+export async function fetchPropertyById(id: string): Promise<Property> {
+  const response = await fetch(`/api/properties/${id}`);
 
-/**
- * Convierte una propiedad al formato del formulario para edición
- */
-export function propertyToFormData(property: Property): PropertyFormData {
-  console.log("Propiedad a convertir:", property);
-  console.log("URL de imagen recibida de la BD:", property.image);
-
-  // Extraer neighborhood y city de location
-  let neighborhood = "";
-  let city = property.location;
-
-  if (property.location.includes(",")) {
-    const parts = property.location.split(",");
-    neighborhood = parts[0].trim();
-    city = parts.slice(1).join(",").trim();
+  if (!response.ok) {
+    throw new Error("Error al obtener la propiedad");
   }
 
-  // Nos aseguramos de tener una URL de imagen válida
-  const imageUrl = property.image || "/placeholder.svg";
-
-  // Creamos un objeto de imagen para el formulario
-  const imageObject = {
-    id: "main",
-    url: imageUrl,
-    isPrimary: true,
-    order: 0,
-  };
-
-  console.log("Objeto de imagen para el formulario:", imageObject);
-
-  return {
-    title: property.title,
-    description: property.description,
-    price: property.price.toString(),
-    operationType: property.type as "venta" | "alquiler",
-    propertyType: property.propertyType,
-
-    address: property.address,
-    latitude: "", // Estos campos no están en Property, habría que extenderlo
-    longitude: "", // o guardarlos como metadatos
-    neighborhood: neighborhood,
-    city: city,
-    postalCode: "",
-
-    bedrooms: property.bedrooms.toString(),
-    bathrooms: property.bathrooms.toString(),
-    squareMetersBuilt: property.area.toString(),
-    squareMetersUsable: "",
-    constructionYear: "",
-    parkingSpaces: "",
-    features: property.features,
-    energyRating: "",
-
-    images: [imageObject],
-
-    status: property.status as
-      | "borrador"
-      | "publicada"
-      | "destacada"
-      | "inactiva",
-    isFeatured: property.isFeatured || false,
-    publishDate: new Date().toISOString().split("T")[0],
-    visibility: "publica",
-    tags: [],
-  };
+  const data = await response.json();
+  return data.data;
 }
 
-/**
- * Función para depurar problemas de imágenes
- * Puedes llamar a esta función desde componentes para verificar las URLs
- */
-export function debugPropertyImage(property: Property): void {
-  console.log("DEBUG - Información de imagen de propiedad:");
-  console.log("ID de propiedad:", property.id);
-  console.log("Título:", property.title);
-  console.log("URL de imagen:", property.image);
+// Función para crear una nueva propiedad
+export async function createProperty(
+  propertyData: Omit<Property, "id">
+): Promise<Property> {
+  const response = await fetch("/api/properties", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(propertyData),
+  });
 
-  // Verificar si la URL es absoluta o relativa
-  const isAbsoluteUrl =
-    property.image.startsWith("http") || property.image.startsWith("/");
-  console.log("¿Es URL absoluta?", isAbsoluteUrl);
+  if (!response.ok) {
+    throw new Error("Error al crear la propiedad");
+  }
 
-  // Verificar si es un placeholder
-  const isPlaceholder = property.image.includes("placeholder");
-  console.log("¿Es imagen placeholder?", isPlaceholder);
+  const data = await response.json();
+  return data.data;
+}
+
+// Función para actualizar una propiedad existente
+export async function updateProperty(
+  id: string,
+  propertyData: Partial<Property>
+): Promise<Property> {
+  const response = await fetch(`/api/properties/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(propertyData),
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al actualizar la propiedad");
+  }
+
+  const data = await response.json();
+  return data.data;
+}
+
+// Función para eliminar una propiedad
+export async function deleteProperty(id: string): Promise<boolean> {
+  const response = await fetch(`/api/properties/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al eliminar la propiedad");
+  }
+
+  return true;
+}
+
+// Función para actualizar el estado de una propiedad
+export async function updatePropertyStatus(
+  id: string,
+  status: "borrador" | "publicada" | "destacada" | "inactiva"
+): Promise<Property> {
+  const response = await fetch(`/api/properties/${id}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al actualizar el estado de la propiedad");
+  }
+
+  const data = await response.json();
+  return data.data;
+}
+
+// Función para marcar/desmarcar una propiedad como destacada
+export async function togglePropertyFeatured(
+  id: string,
+  isFeatured: boolean
+): Promise<Property> {
+  const response = await fetch(`/api/properties/${id}/featured`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ isFeatured }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al actualizar el estado destacado de la propiedad");
+  }
+
+  const data = await response.json();
+  return data.data;
+}
+
+// Función para añadir una nota a una propiedad
+export async function addPropertyNote(
+  propertyId: string,
+  content: string
+): Promise<{
+  id: string;
+  content: string;
+  createdAt: string;
+  user: {
+    name: string;
+    avatar: string;
+  };
+}> {
+  const response = await fetch(`/api/properties/${propertyId}/notes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ content }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al añadir nota a la propiedad");
+  }
+
+  const data = await response.json();
+  return data.data;
 }
