@@ -11,8 +11,8 @@ import { Suspense } from "react";
 const PropertyDetailLoading = () => (
   <div className="space-y-6">
     <div className="animate-pulse">
-      <div className="h-8 bg-gray-200 dark:bg-gray-700 w-48 mb-4 rounded"></div>
-      <div className="h-64 bg-gray-200 dark:bg-gray-700 w-full rounded"></div>
+      <div className="h-8 bg-gray-200 w-48 mb-4 rounded"></div>
+      <div className="h-64 bg-gray-200 w-full rounded"></div>
     </div>
   </div>
 );

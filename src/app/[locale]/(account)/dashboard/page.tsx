@@ -182,7 +182,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link href={"dashboard/properties/new"}>
-            <Button className="bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800">
+            <Button className="bg-blue-800 hover:bg-blue-900 ">
               <Plus className="mr-2 h-4 w-4" />
               Añadir propiedad
             </Button>

@@ -96,12 +96,12 @@ export default function AdminSidebar() {
   return (
     <div
       className={cn(
-        "flex flex-col border-r bg-white dark:bg-gray-900 dark:border-gray-800 h-screen relative transition-all duration-300",
+        "flex flex-col border-r bg-white h-screen relative transition-all duration-300",
         isCollapsed ? "w-[70px]" : "w-[250px]"
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center border-b px-4 dark:border-gray-800">
+      <div className="flex h-16 items-center border-b px-4">
         <Link href={`/${locale}/dashboard`} className="flex items-center gap-2">
           <Image
             src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=32&h=32&auto=format&fit=crop"
@@ -111,9 +111,7 @@ export default function AdminSidebar() {
             className="h-8 w-8"
           />
           {!isCollapsed && (
-            <span className="text-xl font-bold text-blue-800 dark:text-blue-400">
-              Visitae
-            </span>
+            <span className="text-xl font-bold text-blue-800 ">Visitae</span>
           )}
         </Link>
       </div>
@@ -122,7 +120,7 @@ export default function AdminSidebar() {
       <Button
         variant="ghost"
         size="icon"
-        className="absolute -right-4 top-20 h-8 w-8 rounded-full border bg-white dark:bg-gray-900 dark:border-gray-800 shadow-sm z-10"
+        className="absolute -right-4 top-20 h-8 w-8 rounded-full border bg-white shadow-sm z-10"
         onClick={toggleSidebar}
       >
         {isCollapsed ? (
@@ -147,7 +145,7 @@ export default function AdminSidebar() {
                     className={cn(
                       "w-full justify-start gap-2 font-normal",
                       pathname.startsWith(item.href) &&
-                        "bg-gray-100 dark:bg-gray-800 font-medium",
+                        "bg-gray-100 font-medium",
                       isCollapsed && "px-2"
                     )}
                     onClick={() => toggleSubmenu(item.title)}
@@ -166,15 +164,15 @@ export default function AdminSidebar() {
                     )}
                   </Button>
                   {!isCollapsed && openSubmenu === item.title && (
-                    <div className="ml-4 pl-2 border-l dark:border-gray-800">
+                    <div className="ml-4 pl-2 border-l ">
                       {item.submenu.map((subitem) => (
                         <Link
                           key={subitem.href}
                           href={subitem.href}
                           className={cn(
-                            "flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800",
+                            "flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 ",
                             pathname === subitem.href &&
-                              "bg-gray-100 dark:bg-gray-800 font-medium"
+                              "bg-gray-100 font-medium"
                           )}
                         >
                           <span>{subitem.title}</span>
@@ -189,8 +187,7 @@ export default function AdminSidebar() {
                     variant="ghost"
                     className={cn(
                       "w-full justify-start gap-2 font-normal",
-                      pathname === item.href &&
-                        "bg-gray-100 dark:bg-gray-800 font-medium",
+                      pathname === item.href && "bg-gray-100 font-medium",
                       isCollapsed && "px-2"
                     )}
                   >
@@ -205,11 +202,11 @@ export default function AdminSidebar() {
       </div>
 
       {/* Logout button */}
-      <div className="border-t p-4 dark:border-gray-800">
+      <div className="border-t p-4">
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950",
+            "w-full justify-start gap-2 text-red-600 hover:text-red-700 hover:bg-red-50",
             isCollapsed && "px-2"
           )}
           onClick={() => {

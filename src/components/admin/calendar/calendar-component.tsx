@@ -96,7 +96,7 @@ export default function CalendarComponent({
                     !isSameMonth(day, currentMonth) &&
                       "text-muted-foreground opacity-50",
                     isSameDay(day, selectedDate) && "selected",
-                    isToday(day) && "border-blue-500 dark:border-blue-400"
+                    isToday(day) && "border-blue-500"
                   )}
                   onClick={() => onDateSelect(day)}
                 >
@@ -104,8 +104,7 @@ export default function CalendarComponent({
                     <span
                       className={cn(
                         "text-right text-sm",
-                        isToday(day) &&
-                          "font-bold text-blue-600 dark:text-blue-400"
+                        isToday(day) && "font-bold text-blue-600"
                       )}
                     >
                       {format(day, "d")}

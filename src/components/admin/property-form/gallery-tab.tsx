@@ -140,7 +140,7 @@ export default function GalleryTab({
           {formData.images.length > 0 && (
             <div className="space-y-2">
               <Label>Imágenes subidas ({formData.images.length})</Label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-500">
                 Arrastra para reordenar. Marca una imagen como principal.
               </p>
 
@@ -153,9 +153,7 @@ export default function GalleryTab({
                     onDragOver={(e) => handleDragOver(e, image.id)}
                     onDragEnd={handleDragEnd}
                     className={`relative group border rounded-md overflow-hidden ${
-                      image.isPrimary
-                        ? "ring-2 ring-blue-500 dark:ring-blue-400"
-                        : ""
+                      image.isPrimary ? "ring-2 ring-blue-500" : ""
                     } ${draggedImage === image.id ? "opacity-50" : ""}`}
                   >
                     <div className="aspect-video relative">

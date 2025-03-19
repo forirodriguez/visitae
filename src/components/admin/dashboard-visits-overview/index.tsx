@@ -57,7 +57,7 @@ export default function VisitsOverview() {
 
   if (statsError || visitsError || propertiesError) {
     return (
-      <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-md text-red-800 dark:text-red-400">
+      <div className="bg-red-50 p-4 rounded-md text-red-800">
         <h3 className="font-semibold mb-2">Error al cargar datos</h3>
         <p>
           No se pudieron cargar algunos datos del dashboard. Intente recargar la
@@ -154,8 +154,8 @@ export default function VisitsOverview() {
                         variant="outline"
                         className={
                           visit.status === "pendiente"
-                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-                            : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-green-100 text-green-800"
                         }
                       >
                         {visit.status === "pendiente"
@@ -263,7 +263,7 @@ export default function VisitsOverview() {
                         </span>{" "}
                         visitas programadas
                       </span>
-                      <span className="font-medium text-blue-700 dark:text-blue-400">
+                      <span className="font-medium text-blue-700">
                         {property.price.toLocaleString("es-ES")}€
                         {property.type === "alquiler" && "/mes"}
                       </span>

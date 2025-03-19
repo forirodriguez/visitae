@@ -39,7 +39,7 @@ export default function PropertyPage() {
         <Button className="mb-6" onClick={() => window.history.back()}>
           Volver
         </Button>
-        <div className="text-red-500 text-center py-10 border border-red-200 rounded-md bg-red-50 dark:bg-red-950/20 dark:border-red-900">
+        <div className="text-red-500 text-center py-10 border border-red-200 rounded-md bg-red-50">
           <p className="font-medium">No se pudo cargar la propiedad</p>
           <p className="text-sm text-red-400">
             {Error() ? error : "Error desconocido"}
@@ -58,7 +58,7 @@ export default function PropertyPage() {
       {property ? (
         <PropertyDetailView property={property} locale={""} />
       ) : (
-        <div className="text-center py-10 border border-gray-200 rounded-md bg-gray-50 dark:bg-gray-800/20 dark:border-gray-700">
+        <div className="text-center py-10 border border-gray-200 rounded-md bg-gray-50">
           Propiedad no encontrada
         </div>
       )}

@@ -29,14 +29,14 @@ export default function AdminHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white px-4 dark:bg-gray-900 dark:border-gray-800">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white px-4">
       <div className="ml-auto flex items-center gap-4">
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5 text-gray-700 dark:text-gray-400" />
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-blue-800 dark:bg-blue-700">
+              <Bell className="h-5 w-5 text-gray-700" />
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-blue-800">
                 3
               </Badge>
               <span className="sr-only">Notificaciones</span>
@@ -89,7 +89,7 @@ export default function AdminHeader() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="cursor-pointer text-red-600 dark:text-red-400"
+              className="cursor-pointer text-red-600"
               onClick={handleLogout}
             >
               <LogOut className="mr-2 h-4 w-4" />

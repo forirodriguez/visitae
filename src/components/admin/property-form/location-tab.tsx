@@ -98,12 +98,12 @@ export default function LocationTab({
         description="Selecciona la ubicación exacta en el mapa o introduce las coordenadas"
       >
         <div className="space-y-4">
-          <div className="relative aspect-video w-full border rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800">
+          <div className="relative aspect-video w-full border rounded-md overflow-hidden bg-gray-100">
             {/* Aquí iría un componente de mapa interactivo real */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center space-y-2">
                 <MapPin className="h-8 w-8 mx-auto text-gray-400" />
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500">
                   Mapa interactivo (simulado)
                 </p>
                 <Button variant="outline" size="sm" onClick={() => {}}>

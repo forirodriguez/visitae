@@ -54,22 +54,20 @@ export default function ImageGalleryUploader({
   return (
     <div
       className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
-        isDragging
-          ? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/30"
-          : "border-gray-300 dark:border-gray-700"
+        isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
       }`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       <div className="flex flex-col items-center justify-center space-y-4 text-center">
-        <div className="rounded-full bg-gray-100 p-3 dark:bg-gray-800">
-          <ImageIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+        <div className="rounded-full bg-gray-100 p-3">
+          <ImageIcon className="h-6 w-6 text-gray-500" />
         </div>
 
         <div className="space-y-2">
           <h3 className="text-base font-medium">Arrastra y suelta imágenes</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500">
             Sube imágenes en formato JPG, PNG o WEBP (máx. 5MB por imagen)
           </p>
         </div>

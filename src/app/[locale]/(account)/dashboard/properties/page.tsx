@@ -24,7 +24,7 @@ export default function PropertiesPage() {
           </p>
         </div>
         <Button
-          className="bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
+          className="bg-blue-800 hover:bg-blue-900"
           onClick={handleAddProperty}
         >
           <Plus className="mr-2 h-4 w-4" />

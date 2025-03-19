@@ -57,11 +57,11 @@ export default function PropertyFormAdapter({
 
   if (error) {
     return (
-      <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 dark:bg-red-950 dark:border-red-500">
+      <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
         <div className="flex">
           <div>
-            <p className="text-lg text-red-700 dark:text-red-400">Error</p>
-            <p className="text-red-600 dark:text-red-300">{error}</p>
+            <p className="text-lg text-red-700">Error</p>
+            <p className="text-red-600">{error}</p>
           </div>
         </div>
       </div>
@@ -72,7 +72,7 @@ export default function PropertyFormAdapter({
   if (propertyId && !propertyExists) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">
+        <h2 className="text-2xl font-bold text-red-600 mb-2">
           Propiedad no encontrada
         </h2>
         <p className="mb-6">

@@ -13,7 +13,7 @@ export default async function LoginPage(props: { params: PageParams }) {
   const { locale } = await props.params;
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50">
       <div className="w-full max-w-md">
         <LoginForm locale={locale} />
       </div>

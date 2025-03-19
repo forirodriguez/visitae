@@ -331,7 +331,7 @@ export default function PropertyListTable() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex w-full max-w-sm items-center space-x-2">
           <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <Input
               type="search"
               placeholder="Buscar propiedades..."
@@ -344,7 +344,7 @@ export default function PropertyListTable() {
             variant="outline"
             size="icon"
             onClick={() => setShowFilters(!showFilters)}
-            className={showFilters ? "bg-gray-100 dark:bg-gray-800" : ""}
+            className={showFilters ? "bg-gray-100" : ""}
           >
             <SlidersHorizontal className="h-4 w-4" />
             <span className="sr-only">Filtros</span>
@@ -353,7 +353,7 @@ export default function PropertyListTable() {
 
         {selectedProperties.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-gray-500">
               {selectedProperties.length} seleccionados
             </span>
             <DropdownMenu>
@@ -377,7 +377,7 @@ export default function PropertyListTable() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => handleBulkAction("delete")}
-                  className="text-red-600 dark:text-red-400"
+                  className="text-red-600 "
                 >
                   Eliminar
                 </DropdownMenuItem>
@@ -389,7 +389,7 @@ export default function PropertyListTable() {
 
       {/* Filtros expandibles */}
       {showFilters && (
-        <div className="grid gap-4 p-4 border rounded-md bg-gray-50 dark:bg-gray-900 dark:border-gray-800">
+        <div className="grid gap-4 p-4 border rounded-md bg-gray-50">
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Tipo de operación</label>
@@ -525,7 +525,7 @@ export default function PropertyListTable() {
               Resetear
             </Button>
             <Button
-              className="bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
+              className="bg-blue-800 hover:bg-blue-900"
               onClick={() => setShowFilters(false)}
             >
               Aplicar filtros
@@ -536,12 +536,12 @@ export default function PropertyListTable() {
 
       {/* Mensaje de error */}
       {error && (
-        <div className="p-4 border border-red-300 bg-red-50 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-800 dark:text-red-400">
+        <div className="p-4 border border-red-300 bg-red-50 text-red-700 rounded-md">
           {error}
           <Button
             variant="link"
             onClick={loadProperties}
-            className="ml-2 text-red-600 dark:text-red-400"
+            className="ml-2 text-red-600"
           >
             Reintentar
           </Button>
@@ -580,14 +580,14 @@ export default function PropertyListTable() {
                   <TableRow key={`skeleton-${index}`}>
                     <TableCell colSpan={8} className="py-4">
                       <div className="flex space-x-4 items-center">
-                        <div className="h-4 w-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-                        <div className="h-12 w-16 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-                        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-                        <div className="hidden md:block h-4 w-32 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-                        <div className="hidden md:block h-4 w-24 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-                        <div className="hidden md:block h-4 w-28 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-                        <div className="h-5 w-20 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-                        <div className="ml-auto h-8 w-8 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+                        <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-12 w-16 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="hidden md:block h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="hidden md:block h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="hidden md:block h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-5 w-20 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="ml-auto h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -634,7 +634,7 @@ export default function PropertyListTable() {
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-gray-500 ">
                       {property.propertyType}
                     </div>
                   </TableCell>
@@ -649,12 +649,12 @@ export default function PropertyListTable() {
                           : `${property.price.toLocaleString("es-ES")} €/mes`}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-gray-500 ">
                       {property.type === "venta" ? "Venta" : "Alquiler"}
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    <div className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center space-x-3 text-sm text-gray-500 ">
                       <div className="flex items-center">
                         <Bed className="h-4 w-4 mr-1" />
                         <span>{property.bedrooms}</span>
@@ -698,7 +698,7 @@ export default function PropertyListTable() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => openDeleteModal(property)}
-                          className="text-red-600 dark:text-red-400"
+                          className="text-red-600"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           <span>Eliminar</span>
@@ -715,7 +715,7 @@ export default function PropertyListTable() {
 
       {/* Paginación */}
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="text-sm text-gray-500 ">
           Mostrando {paginatedProperties.length} de {properties.length}{" "}
           propiedades
         </div>

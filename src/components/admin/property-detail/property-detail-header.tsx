@@ -220,7 +220,7 @@ export default function PropertyDetailHeader({
         <Button
           variant="default"
           size="sm"
-          className="flex items-center gap-1 bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
+          className="flex items-center gap-1 bg-blue-800 hover:bg-blue-900"
           onClick={handleEditProperty}
           disabled={isActionLoading}
         >
@@ -318,7 +318,7 @@ export default function PropertyDetailHeader({
 
             <DropdownMenuItem
               onClick={() => setShowDeleteDialog(true)}
-              className="text-red-600 dark:text-red-400"
+              className="text-red-600"
               disabled={isActionLoading}
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -370,7 +370,7 @@ export default function PropertyDetailHeader({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid gap-4">
-            <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-md">
+            <div className="p-3 bg-gray-100 rounded-md">
               <p className="text-sm font-mono break-all">
                 {window.location.origin}/propiedades/{property.id}
               </p>
@@ -423,7 +423,7 @@ export default function PropertyDetailHeader({
           </AlertDialogHeader>
           <div className="text-center py-6">
             <p>Funcionalidad en desarrollo</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            <p className="text-sm text-gray-500 mt-2">
               Esta funcionalidad estará disponible próximamente.
             </p>
           </div>

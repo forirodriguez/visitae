@@ -107,7 +107,7 @@ export default function PropertyStats({ stats }: PropertyStatsProps) {
                   className="relative flex h-full w-full flex-col justify-end"
                 >
                   <div
-                    className="w-full rounded-md bg-blue-100 dark:bg-blue-950"
+                    className="w-full rounded-md bg-blue-100"
                     style={{ height: calculateHeight(item.count) }}
                   >
                     <div className="absolute bottom-0 left-0 right-0 top-0 flex items-center justify-center text-xs font-bold">
@@ -138,7 +138,7 @@ export default function PropertyStats({ stats }: PropertyStatsProps) {
             <div className="relative h-40 w-40">
               <svg className="h-full w-full" viewBox="0 0 100 100">
                 <circle
-                  className="stroke-gray-200 dark:stroke-gray-800"
+                  className="stroke-gray-200"
                   cx="50"
                   cy="50"
                   r="40"
@@ -161,9 +161,7 @@ export default function PropertyStats({ stats }: PropertyStatsProps) {
                 <span className="text-3xl font-bold">
                   {((stats.contactRequests / stats.views) * 100).toFixed(1)}%
                 </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Conversión
-                </span>
+                <span className="text-sm text-gray-500">Conversión</span>
               </div>
             </div>
           </div>

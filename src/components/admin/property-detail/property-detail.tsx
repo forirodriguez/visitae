@@ -246,7 +246,7 @@ export default function PropertyDetail({ propertyId }: PropertyDetailProps) {
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-bold">{property.title}</h2>
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="text-gray-500">
                   {property.address}, {property.city}
                 </p>
               </div>
@@ -317,7 +317,7 @@ export default function PropertyDetail({ propertyId }: PropertyDetailProps) {
 
             <div>
               <h3 className="text-lg font-semibold mb-2">Descripción</h3>
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
+              <p className="text-gray-700 whitespace-pre-line">
                 {property.description}
               </p>
             </div>

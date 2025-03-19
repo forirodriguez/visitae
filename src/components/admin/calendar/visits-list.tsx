@@ -81,37 +81,25 @@ export default function VisitsList({
     switch (status) {
       case "pendiente":
         return (
-          <Badge
-            variant="outline"
-            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-          >
+          <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
             Pendiente
           </Badge>
         );
       case "confirmada":
         return (
-          <Badge
-            variant="outline"
-            className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-          >
+          <Badge variant="outline" className="bg-green-100 text-green-800">
             Confirmada
           </Badge>
         );
       case "cancelada":
         return (
-          <Badge
-            variant="outline"
-            className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-          >
+          <Badge variant="outline" className="bg-red-100 text-red-800">
             Cancelada
           </Badge>
         );
       case "completada":
         return (
-          <Badge
-            variant="outline"
-            className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-          >
+          <Badge variant="outline" className="bg-blue-100 text-blue-800">
             Completada
           </Badge>
         );
@@ -219,7 +207,7 @@ export default function VisitsList({
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          className="text-red-600 dark:text-red-400"
+                          className="text-red-600"
                           onClick={() => handleDeleteVisit(visit)}
                         >
                           Eliminar visita

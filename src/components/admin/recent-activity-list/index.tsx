@@ -106,31 +106,27 @@ export default function RecentActivityList() {
       case "added":
         return {
           text: "Añadida",
-          color:
-            "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+          color: "bg-green-100 text-green-800 ",
         };
       case "edited":
         return {
           text: "Editada",
-          color:
-            "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+          color: "bg-blue-100 text-blue-800 ",
         };
       case "deleted":
         return {
           text: "Eliminada",
-          color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+          color: "bg-red-100 text-red-800 ",
         };
       case "published":
         return {
           text: "Publicada",
-          color:
-            "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+          color: "bg-purple-100 text-purple-800",
         };
       default:
         return {
           text: "Actualizada",
-          color:
-            "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+          color: "bg-gray-100 text-gray-800 ",
         };
     }
   };
@@ -166,7 +162,7 @@ export default function RecentActivityList() {
                 </Badge>
               </div>
 
-              <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex items-center text-xs text-gray-500 ">
                 <span>Por {activity.user.name}</span>
                 <span className="mx-1">•</span>
                 <span>{activity.timestamp}</span>

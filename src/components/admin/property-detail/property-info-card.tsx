@@ -17,11 +17,9 @@ export default function PropertyInfoCard({
         {items.map((item, index) => (
           <div
             key={index}
-            className="flex justify-between py-1 border-b border-gray-100 dark:border-gray-800 last:border-0"
+            className="flex justify-between py-1 border-b border-gray-100 last:border-0"
           >
-            <span className="text-gray-500 dark:text-gray-400">
-              {item.label}
-            </span>
+            <span className="text-gray-500">{item.label}</span>
             <span className="font-medium">{item.value}</span>
           </div>
         ))}

@@ -216,7 +216,7 @@ export default function CalendarContainer({
         </div>
         <Button
           onClick={handleAddVisit}
-          className="bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
+          className="bg-blue-800 hover:bg-blue-900"
           disabled={isLoadingData}
         >
           {isLoadingData ? (

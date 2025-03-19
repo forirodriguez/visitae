@@ -95,7 +95,7 @@ function PropertyFormTabs({
   completedTabs: Record<string, boolean>;
 }) {
   return (
-    <TabsList className="grid w-full grid-cols-5 h-auto p-0 bg-gray-100 dark:bg-gray-900 rounded-t-lg rounded-b-none overflow-hidden">
+    <TabsList className="grid w-full grid-cols-5 h-auto p-0 bg-gray-100 rounded-t-lg rounded-b-none overflow-hidden">
       {[
         { id: "basic-info", label: "Información básica", icon: Building },
         { id: "location", label: "Ubicación", icon: MapPin },
@@ -106,15 +106,13 @@ function PropertyFormTabs({
         <TabsTrigger
           key={id}
           value={id}
-          className={`flex items-center gap-2 rounded-none border-r border-gray-200 dark:border-gray-800 py-3 ${
-            activeTab === id
-              ? "bg-white dark:bg-gray-800 border-b-2 border-b-blue-800 dark:border-b-blue-700"
-              : ""
+          className={`flex items-center gap-2 rounded-none border-r border-gray-200 py-3 ${
+            activeTab === id ? "bg-white border-b-2 border-b-blue-800 " : ""
           } ${id !== activeTab ? "pointer-events-none opacity-70" : ""}`}
           disabled={id !== activeTab}
         >
           {completedTabs[id] ? (
-            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <CheckCircle className="h-4 w-4 text-green-600" />
           ) : (
             <Icon className="h-4 w-4" />
           )}
@@ -505,7 +503,7 @@ export default function PropertyForm({
               <div></div> {/* Espacio vacío para mantener el justify-between */}
               <Button
                 onClick={goToNextStep}
-                className="bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
+                className="bg-blue-800 hover:bg-blue-900"
               >
                 Siguiente: Ubicación
               </Button>
@@ -527,7 +525,7 @@ export default function PropertyForm({
               </Button>
               <Button
                 onClick={goToNextStep}
-                className="bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
+                className="bg-blue-800 hover:bg-blue-900"
               >
                 Siguiente: Características
               </Button>
@@ -549,7 +547,7 @@ export default function PropertyForm({
               </Button>
               <Button
                 onClick={goToNextStep}
-                className="bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
+                className="bg-blue-800 hover:bg-blue-900"
               >
                 Siguiente: Galería
               </Button>
@@ -571,7 +569,7 @@ export default function PropertyForm({
               </Button>
               <Button
                 onClick={goToNextStep}
-                className="bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
+                className="bg-blue-800 hover:bg-blue-900"
               >
                 Siguiente: Ajustes avanzados
               </Button>
@@ -612,7 +610,7 @@ export default function PropertyForm({
                       });
                     }
                   }}
-                  className="bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
+                  className="bg-blue-800 hover:bg-blue-900"
                   disabled={isLoading}
                 >
                   <Upload className="mr-2 h-4 w-4" />
@@ -653,7 +651,7 @@ export default function PropertyForm({
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handlePublish}
-              className="bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
+              className="bg-blue-800 hover:bg-blue-900"
             >
               Publicar
             </AlertDialogAction>
@@ -675,9 +673,7 @@ export default function PropertyForm({
           </div>
           <div className="mt-4 p-4 border rounded-md max-h-60 overflow-y-auto">
             <h3 className="text-lg font-semibold mb-2">Descripción completa</h3>
-            <p className="text-gray-700 dark:text-gray-300">
-              {formData.description}
-            </p>
+            <p className="text-gray-700">{formData.description}</p>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cerrar</AlertDialogCancel>

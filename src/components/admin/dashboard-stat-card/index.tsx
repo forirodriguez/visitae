@@ -30,7 +30,7 @@ export default function DashboardStatCard({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-700 dark:text-gray-300">
+        <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-700">
           {icon}
         </div>
       </CardHeader>
@@ -40,9 +40,9 @@ export default function DashboardStatCard({
           <span
             className={cn(
               "flex items-center text-xs font-medium",
-              trend === "up" && "text-green-600 dark:text-green-500",
-              trend === "down" && "text-red-600 dark:text-red-500",
-              trend === "neutral" && "text-gray-600 dark:text-gray-400"
+              trend === "up" && "text-green-600",
+              trend === "down" && "text-red-600",
+              trend === "neutral" && "text-gray-600"
             )}
           >
             {trend === "up" && <TrendingUp className="mr-1 h-3 w-3" />}

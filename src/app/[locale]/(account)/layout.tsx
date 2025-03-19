@@ -18,7 +18,7 @@ export default function AdminLayout({
 }) {
   return (
     <AdminAuthCheck>
-      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-950">
+      <div className="flex min-h-screen bg-gray-100">
         <AdminSidebar />
         <div className="flex flex-col flex-1">
           <AdminHeader />

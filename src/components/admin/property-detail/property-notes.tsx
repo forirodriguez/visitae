@@ -88,7 +88,7 @@ export default function PropertyNotes({
             type="submit"
             size="sm"
             disabled={!newNote.trim() || isSubmitting}
-            className="bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-800"
+            className="bg-blue-800 hover:bg-blue-900"
           >
             {isSubmitting ? (
               <>
@@ -110,7 +110,7 @@ export default function PropertyNotes({
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-muted-foreground dark:bg-gray-900">
+          <span className="bg-white px-2 text-muted-foreground">
             Historial de notas
           </span>
         </div>
@@ -118,7 +118,7 @@ export default function PropertyNotes({
 
       <div className="space-y-4">
         {notes.length === 0 ? (
-          <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+          <div className="text-center py-6 text-gray-500">
             <p>No hay notas para esta propiedad.</p>
             <p className="text-sm mt-1">
               Añade la primera nota sobre esta propiedad.
@@ -128,7 +128,7 @@ export default function PropertyNotes({
           notes.map((note) => (
             <div
               key={note.id}
-              className="border rounded-lg p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              className="border rounded-lg p-4 transition-colors hover:bg-gray-50"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">
@@ -141,7 +141,7 @@ export default function PropertyNotes({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{note.user.name}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-gray-500">
                         {format(
                           new Date(note.createdAt),
                           "dd MMM yyyy, HH:mm",
@@ -151,7 +151,7 @@ export default function PropertyNotes({
                         )}
                       </span>
                     </div>
-                    <p className="mt-1 text-gray-700 dark:text-gray-200 whitespace-pre-line">
+                    <p className="mt-1 text-gray-700 whitespace-pre-line">
                       {note.content}
                     </p>
                   </div>

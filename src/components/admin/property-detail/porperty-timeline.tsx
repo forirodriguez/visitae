@@ -29,13 +29,12 @@ export default function PropertyTimeline({ timeline }: PropertyTimelineProps) {
   );
 
   const getActionColor = (action: string) => {
-    if (action.includes("creada")) return "bg-green-100 dark:bg-green-900";
-    if (action.includes("publicada")) return "bg-blue-100 dark:bg-blue-900";
-    if (action.includes("destacada")) return "bg-yellow-100 dark:bg-yellow-900";
-    if (action.includes("actualizada"))
-      return "bg-purple-100 dark:bg-purple-900";
-    if (action.includes("eliminada")) return "bg-red-100 dark:bg-red-900";
-    return "bg-gray-100 dark:bg-gray-800";
+    if (action.includes("creada")) return "bg-green-100";
+    if (action.includes("publicada")) return "bg-blue-100";
+    if (action.includes("destacada")) return "bg-yellow-100";
+    if (action.includes("actualizada")) return "bg-purple-100";
+    if (action.includes("eliminada")) return "bg-red-100";
+    return "bg-gray-100 ";
   };
 
   // Función para obtener un avatar aleatorio pero consistente basado en el nombre
@@ -49,7 +48,7 @@ export default function PropertyTimeline({ timeline }: PropertyTimelineProps) {
     <div className="space-y-6">
       <div className="space-y-1">
         <h3 className="text-lg font-semibold">Historial de actividad</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-500">
           Registro de cambios y acciones realizadas en esta propiedad
         </p>
       </div>
@@ -66,7 +65,7 @@ export default function PropertyTimeline({ timeline }: PropertyTimelineProps) {
                   className="rounded-full object-cover"
                 />
                 <span
-                  className={`absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white dark:border-gray-900 ${getActionColor(event.action)}`}
+                  className={`absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white ${getActionColor(event.action)}`}
                 />
               </div>
             </div>
@@ -74,16 +73,14 @@ export default function PropertyTimeline({ timeline }: PropertyTimelineProps) {
             <div className="flex-1 space-y-1">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium">{event.action}</p>
-                <time className="text-xs text-gray-500 dark:text-gray-400">
+                <time className="text-xs text-gray-500">
                   {formatDistanceToNow(new Date(event.date), {
                     addSuffix: true,
                     locale: es,
                   })}
                 </time>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Por {event.user.name}
-              </p>
+              <p className="text-sm text-gray-500">Por {event.user.name}</p>
               {event.details && <p className="text-sm mt-1">{event.details}</p>}
             </div>
           </div>

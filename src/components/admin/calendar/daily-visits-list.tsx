@@ -69,8 +69,7 @@ export default function DailyVisitsList({
                 visit.status === "completada" &&
                   "bg-blue-50 text-blue-800 border-blue-200",
                 visit.status === "cancelada" &&
-                  "bg-red-50 text-red-800 border-red-200",
-                "dark:bg-opacity-20"
+                  "bg-red-50 text-red-800 border-red-200"
               )}
             >
               {visit.status}

@@ -59,13 +59,13 @@ export default function VisitDetailComponent({
   const getStatusColor = (status: VisitStatus) => {
     switch (status) {
       case "pendiente":
-        return "bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800/30";
+        return "bg-yellow-50 text-yellow-800 border-yellow-200";
       case "confirmada":
-        return "bg-green-50 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/30";
+        return "bg-green-50 text-green-800 border-green-200";
       case "completada":
-        return "bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800/30";
+        return "bg-blue-50 text-blue-800 border-blue-200";
       case "cancelada":
-        return "bg-red-50 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800/30";
+        return "bg-red-50 text-red-800 border-red-200";
     }
   };
 
@@ -128,15 +128,13 @@ export default function VisitDetailComponent({
           <div
             className={cn(
               "p-2 rounded-full",
-              visit.type === "presencial"
-                ? "bg-blue-100 dark:bg-blue-900/20"
-                : "bg-teal-100 dark:bg-teal-900/20"
+              visit.type === "presencial" ? "bg-blue-100" : "bg-teal-100"
             )}
           >
             {visit.type === "presencial" ? (
-              <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <MapPin className="h-4 w-4 text-blue-600" />
             ) : (
-              <Video className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+              <Video className="h-4 w-4 text-teal-600" />
             )}
           </div>
           <div>
@@ -153,8 +151,8 @@ export default function VisitDetailComponent({
 
         {/* Cliente */}
         <div className="flex items-center gap-3">
-          <div className="bg-green-100 dark:bg-green-900/20 p-2 rounded-full">
-            <User className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <div className="bg-green-100 p-2 rounded-full">
+            <User className="h-4 w-4 text-green-600" />
           </div>
           <div>
             <h4 className="font-medium text-sm">Cliente</h4>
@@ -188,8 +186,8 @@ export default function VisitDetailComponent({
         {/* Agente (si existe) */}
         {visit.agentId && (
           <div className="flex items-center gap-3">
-            <div className="bg-purple-100 dark:bg-purple-900/20 p-2 rounded-full">
-              <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            <div className="bg-purple-100 p-2 rounded-full">
+              <User className="h-4 w-4 text-purple-600" />
             </div>
             <div>
               <h4 className="font-medium text-sm">Agente asignado</h4>
@@ -230,7 +228,7 @@ export default function VisitDetailComponent({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-900/20"
+                    className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
                     onClick={() => onUpdateStatus(visit, "confirmada")}
                   >
                     <CheckCircle className="h-4 w-4 mr-2" />
@@ -239,7 +237,7 @@ export default function VisitDetailComponent({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
+                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                     onClick={() => onUpdateStatus(visit, "cancelada")}
                   >
                     <XCircle className="h-4 w-4 mr-2" />
@@ -252,7 +250,7 @@ export default function VisitDetailComponent({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/20"
+                    className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                     onClick={() => onUpdateStatus(visit, "completada")}
                   >
                     <CheckCircle className="h-4 w-4 mr-2" />
@@ -261,7 +259,7 @@ export default function VisitDetailComponent({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
+                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                     onClick={() => onUpdateStatus(visit, "cancelada")}
                   >
                     <XCircle className="h-4 w-4 mr-2" />
