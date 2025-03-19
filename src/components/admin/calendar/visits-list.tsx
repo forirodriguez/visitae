@@ -1,4 +1,3 @@
-//src/components/admin/calendar/visits-list.tsx
 "use client";
 
 import { useState } from "react";
@@ -24,13 +23,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Pencil, MoreVertical, MapPin, Video, Loader2 } from "lucide-react";
 import { Visit, VisitStatus } from "@/types/visits";
+import { format } from "date-fns";
 
 interface VisitListProps {
   visits: Visit[];
   onEditVisit: (visit: Visit) => void;
   onUpdateStatus: (visit: Visit, newStatus: VisitStatus) => Promise<void>;
-  onDeleteVisit?: (visitId: string) => Promise<void>;
+  onDeleteVisit?: (visitId: string) => void | Promise<void>; // Modificado para aceptar ambos tipos
   isLoading?: boolean;
+  showDate?: boolean;
 }
 
 export default function VisitsList({
@@ -39,6 +40,7 @@ export default function VisitsList({
   onUpdateStatus,
   onDeleteVisit,
   isLoading = false,
+  showDate = false,
 }: VisitListProps) {
   // Estado para el diálogo de confirmación de eliminación
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -108,134 +110,150 @@ export default function VisitsList({
     }
   };
 
+  // Ordenar las visitas por hora
+  const sortedVisits = [...visits].sort((a, b) => {
+    return a.time.localeCompare(b.time);
+  });
+
   return (
     <>
-      <div className="space-y-3">
-        {visits.map((visit) => (
-          <div
-            key={visit.id}
-            className={`p-3 rounded-md border ${
-              visit.status === "confirmada"
-                ? "visit-status-confirmed"
-                : visit.status === "pendiente"
-                  ? "visit-status-pending"
-                  : visit.status === "cancelada"
-                    ? "visit-status-cancelled"
-                    : "visit-status-completed"
-            }`}
-          >
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <div className="font-medium">{visit.propertyTitle}</div>
-                <div className="text-sm text-muted-foreground">
-                  {visit.time}h ·{" "}
-                  <span className="inline-flex items-center">
-                    {visit.type === "presencial" ? (
-                      <>
-                        <MapPin className="h-3 w-3 mr-1" /> Presencial
-                      </>
-                    ) : (
-                      <>
-                        <Video className="h-3 w-3 mr-1" /> Videollamada
-                      </>
+      {/* Contenedor con altura fija y scrollbar */}
+      <div className="h-[450px] overflow-y-auto pr-2">
+        <div className="space-y-3">
+          {sortedVisits.map((visit) => (
+            <div
+              key={visit.id}
+              className={`p-3 rounded-md border ${
+                visit.status === "confirmada"
+                  ? "visit-status-confirmed"
+                  : visit.status === "pendiente"
+                    ? "visit-status-pending"
+                    : visit.status === "cancelada"
+                      ? "visit-status-cancelled"
+                      : "visit-status-completed"
+              }`}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <div className="font-medium">{visit.propertyTitle}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {showDate && (
+                      <span className="mr-2">
+                        {format(new Date(visit.date), "dd/MM/yyyy")} ·
+                      </span>
                     )}
-                  </span>
+                    {visit.time}h ·{" "}
+                    <span className="inline-flex items-center">
+                      {visit.type === "presencial" ? (
+                        <>
+                          <MapPin className="h-3 w-3 mr-1" /> Presencial
+                        </>
+                      ) : (
+                        <>
+                          <Video className="h-3 w-3 mr-1" /> Videollamada
+                        </>
+                      )}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {renderVisitStatus(visit.status)}
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      asChild
+                      disabled={isLoading || processingVisit === visit.id}
+                    >
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        {processingVisit === visit.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <MoreVertical className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onEditVisit(visit)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Editar visita
+                      </DropdownMenuItem>
+
+                      {/* Estados disponibles según estado actual */}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Cambiar estado</DropdownMenuLabel>
+
+                      {visit.status !== "pendiente" && (
+                        <DropdownMenuItem
+                          onClick={() => handleUpdateStatus(visit, "pendiente")}
+                        >
+                          Marcar como pendiente
+                        </DropdownMenuItem>
+                      )}
+
+                      {visit.status !== "confirmada" && (
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handleUpdateStatus(visit, "confirmada")
+                          }
+                        >
+                          Marcar como confirmada
+                        </DropdownMenuItem>
+                      )}
+
+                      {visit.status !== "completada" && (
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handleUpdateStatus(visit, "completada")
+                          }
+                        >
+                          Marcar como completada
+                        </DropdownMenuItem>
+                      )}
+
+                      {visit.status !== "cancelada" && (
+                        <DropdownMenuItem
+                          onClick={() => handleUpdateStatus(visit, "cancelada")}
+                        >
+                          Marcar como cancelada
+                        </DropdownMenuItem>
+                      )}
+
+                      {/* Opción de eliminar */}
+                      {onDeleteVisit && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => handleDeleteVisit(visit)}
+                          >
+                            Eliminar visita
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                {renderVisitStatus(visit.status)}
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    asChild
-                    disabled={isLoading || processingVisit === visit.id}
-                  >
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      {processingVisit === visit.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <MoreVertical className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onEditVisit(visit)}>
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Editar visita
-                    </DropdownMenuItem>
+              <div className="text-sm font-medium">{visit.clientName}</div>
 
-                    {/* Estados disponibles según estado actual */}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Cambiar estado</DropdownMenuLabel>
-
-                    {visit.status !== "pendiente" && (
-                      <DropdownMenuItem
-                        onClick={() => handleUpdateStatus(visit, "pendiente")}
-                      >
-                        Marcar como pendiente
-                      </DropdownMenuItem>
-                    )}
-
-                    {visit.status !== "confirmada" && (
-                      <DropdownMenuItem
-                        onClick={() => handleUpdateStatus(visit, "confirmada")}
-                      >
-                        Marcar como confirmada
-                      </DropdownMenuItem>
-                    )}
-
-                    {visit.status !== "completada" && (
-                      <DropdownMenuItem
-                        onClick={() => handleUpdateStatus(visit, "completada")}
-                      >
-                        Marcar como completada
-                      </DropdownMenuItem>
-                    )}
-
-                    {visit.status !== "cancelada" && (
-                      <DropdownMenuItem
-                        onClick={() => handleUpdateStatus(visit, "cancelada")}
-                      >
-                        Marcar como cancelada
-                      </DropdownMenuItem>
-                    )}
-
-                    {/* Opción de eliminar */}
-                    {onDeleteVisit && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => handleDeleteVisit(visit)}
-                        >
-                          Eliminar visita
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              {visit.notes && (
+                <div className="text-sm mt-2 text-muted-foreground">
+                  <span className="font-medium">Notas:</span> {visit.notes}
+                </div>
+              )}
             </div>
+          ))}
 
-            <div className="text-sm font-medium">{visit.clientName}</div>
-
-            {visit.notes && (
-              <div className="text-sm mt-2 text-muted-foreground">
-                <span className="font-medium">Notas:</span> {visit.notes}
-              </div>
-            )}
-          </div>
-        ))}
-
-        {visits.length === 0 && !isLoading && (
-          <div className="text-center py-4 text-muted-foreground">
-            No hay visitas programadas para este día
-          </div>
-        )}
+          {sortedVisits.length === 0 && !isLoading && (
+            <div className="text-center py-4 text-muted-foreground">
+              No hay visitas programadas
+            </div>
+          )}
+        </div>
       </div>
-
       {/* Diálogo de confirmación para eliminar */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

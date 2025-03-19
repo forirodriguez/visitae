@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   format,
   startOfMonth,
@@ -8,8 +8,6 @@ import {
   addMonths,
   subMonths,
 } from "date-fns";
-import CalendarComponent from "./calendar-component";
-import VisitList from "./visits-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
@@ -19,23 +17,23 @@ import {
   useFilteredVisits,
   useVisitOperations,
 } from "@/hooks/useVisits";
-import { toast } from "sonner";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
+import VisitDialog from "./visit-dialog";
+import CalendarComponent from "./calendar-component";
+import VisitsList from "./visits-list";
 
 interface CalendarContainerProps {
   visits?: Visit[];
   onAddVisit?: (date?: Date) => void;
   onEditVisit?: (visitId: string) => void;
-  onUpdateVisitStatus?: (
-    visit: Visit,
-    newStatus: VisitStatus
-  ) => Promise<void> | void;
-  onDeleteVisit?: (visitId: string) => void;
+  onUpdateVisitStatus?: (visitId: string, status: VisitStatus) => Promise<void>;
+  onDeleteVisit?: (visitId: string) => void | Promise<void>; // Modificado para aceptar ambos tipos
   isLoading?: boolean;
 }
 
 export default function CalendarContainer({
-  visits = [],
+  visits: externalVisits,
   onAddVisit,
   onEditVisit,
   onUpdateVisitStatus,
@@ -46,38 +44,71 @@ export default function CalendarContainer({
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
+  // Estado para el diálogo de visitas
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [visitToEdit, setVisitToEdit] = useState<Visit | null>(null);
+
   // Configurar el rango de fechas para solicitar eventos del calendario
   const firstDay = startOfMonth(currentMonth);
   const lastDay = endOfMonth(currentMonth);
+  const startDateStr = format(firstDay, "yyyy-MM-dd");
+  const endDateStr = format(lastDay, "yyyy-MM-dd");
 
-  // Obtener eventos del calendario usando React Query
+  // Gestionar visitas - usando las provistas externamente o fetcheando propias
   const {
     data: calendarEvents = [],
     isLoading: eventsLoading,
     error: eventsError,
     refetch: refetchEvents,
-  } = useVisitCalendarEvents(
-    format(firstDay, "yyyy-MM-dd"),
-    format(lastDay, "yyyy-MM-dd")
-  );
+  } = useVisitCalendarEvents(startDateStr, endDateStr);
 
-  // Obtener visitas filtradas por fecha seleccionada
+  // Obtener visitas específicas para el día seleccionado si no se proporcionan externamente
+  const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
   const {
-    visits: filteredVisits,
-    loading: visitsLoading,
-    error: visitsError,
+    visits: dayVisits = [],
+    loading: dayVisitsLoading,
+    error: dayVisitsError,
     updateFilters,
   } = useFilteredVisits({
-    startDate: format(selectedDate, "yyyy-MM-dd"),
-    endDate: format(selectedDate, "yyyy-MM-dd"),
+    startDate: selectedDateStr,
+    endDate: selectedDateStr,
   });
 
   // Operaciones CRUD para visitas
   const {
+    createVisit,
+    updateVisit,
     updateVisitStatus,
     deleteVisit,
     isLoading: operationsLoading,
   } = useVisitOperations();
+
+  // Convertir eventos del calendario a formato Visit si no hay visitas externas
+  const monthVisits =
+    externalVisits ||
+    calendarEvents.map((event) => ({
+      id: event.id,
+      propertyId: event.property.id,
+      propertyTitle: event.property.title,
+      propertyImage: event.property.image,
+      clientName: event.client.name,
+      clientEmail: event.client.email,
+      clientPhone: event.client.phone,
+      date: new Date(event.start),
+      time: format(new Date(event.start), "HH:mm"),
+      type: event.type,
+      status: event.status,
+      notes: event.notes,
+      agentId: event.agentId,
+    }));
+
+  // Filtrar visitas para el día seleccionado si se proporcionan visitas externas
+  const selectedDayVisits = externalVisits
+    ? externalVisits.filter((visit) => {
+        const visitDate = new Date(visit.date);
+        return format(visitDate, "yyyy-MM-dd") === selectedDateStr;
+      })
+    : dayVisits;
 
   // Cambiar al mes anterior
   const handlePreviousMonth = () => {
@@ -92,19 +123,38 @@ export default function CalendarContainer({
   // Manejador para seleccionar fecha
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    updateFilters({
-      startDate: format(date, "yyyy-MM-dd"),
-      endDate: format(date, "yyyy-MM-dd"),
-    });
+    if (!externalVisits) {
+      updateFilters({
+        startDate: format(date, "yyyy-MM-dd"),
+        endDate: format(date, "yyyy-MM-dd"),
+      });
+    }
   };
+
+  // Actualizar visitas cada vez que cambia el mes o la fecha seleccionada
+  useEffect(() => {
+    if (!externalVisits) {
+      refetchEvents();
+      updateFilters({
+        startDate: selectedDateStr,
+        endDate: selectedDateStr,
+      });
+    }
+  }, [
+    currentMonth,
+    selectedDateStr,
+    externalVisits,
+    refetchEvents,
+    updateFilters,
+  ]);
 
   // Manejador para añadir visita
   const handleAddVisit = () => {
     if (onAddVisit) {
       onAddVisit(selectedDate);
     } else {
-      // Implementación por defecto si no se proporciona
-      console.log("Añadir visita para:", format(selectedDate, "yyyy-MM-dd"));
+      setVisitToEdit(null);
+      setDialogOpen(true);
     }
   };
 
@@ -113,33 +163,87 @@ export default function CalendarContainer({
     if (onEditVisit) {
       onEditVisit(visitId);
     } else {
-      // Implementación por defecto si no se proporciona
-      console.log("Editar visita:", visitId);
+      // Buscar la visita en los datos
+      const visit =
+        selectedDayVisits.find((v) => v.id === visitId) ||
+        monthVisits.find((v) => v.id === visitId);
+
+      if (visit) {
+        setVisitToEdit(visit);
+        setDialogOpen(true);
+      }
+    }
+  };
+
+  // Manejador para guardar visita (nueva o editada)
+  const handleSaveVisit = async (visitData: Visit) => {
+    try {
+      if (visitToEdit) {
+        // Actualizar visita existente
+        await updateVisit(visitData.id, {
+          propertyId: visitData.propertyId,
+          date: visitData.date.toISOString().split("T")[0], // Formato YYYY-MM-DD
+          time: visitData.time,
+          type: visitData.type,
+          status: visitData.status,
+          notes: visitData.notes,
+          clientId: "client-1", // Asumiendo un valor por defecto para pruebas
+          agentId: visitData.agentId,
+        });
+        toast.success("Visita actualizada correctamente");
+      } else {
+        // Añadir nueva visita
+        await createVisit({
+          propertyId: visitData.propertyId,
+          date: visitData.date.toISOString().split("T")[0], // Formato YYYY-MM-DD
+          time: visitData.time,
+          type: visitData.type,
+          status: visitData.status,
+          notes: visitData.notes,
+          clientId: "client-1", // Asumiendo un valor por defecto para pruebas
+          agentId: visitData.agentId,
+        });
+        toast.success("Visita programada correctamente");
+      }
+
+      // Cerrar diálogo
+      setDialogOpen(false);
+
+      // Actualizar datos
+      if (!externalVisits) {
+        refetchEvents();
+        updateFilters({
+          startDate: selectedDateStr,
+          endDate: selectedDateStr,
+        });
+      }
+    } catch (error) {
+      console.error("Error al guardar la visita:", error);
+      toast.error("No se pudo guardar la visita");
     }
   };
 
   // Manejador para actualizar estado de visita
   const handleUpdateVisitStatus = async (
-    visitId: string,
+    visit: Visit,
     newStatus: VisitStatus
   ) => {
     try {
       if (onUpdateVisitStatus) {
-        const visit = filteredVisits.find((v) => v.id === visitId);
-        if (visit) {
-          await onUpdateVisitStatus(visit, newStatus);
-        }
+        await onUpdateVisitStatus(visit.id, newStatus);
       } else {
-        await updateVisitStatus(visitId, newStatus);
+        await updateVisitStatus(visit.id, newStatus);
         toast.success(`Estado de visita actualizado a ${newStatus}`);
-      }
 
-      // Actualizar datos
-      refetchEvents();
-      updateFilters({
-        startDate: format(selectedDate, "yyyy-MM-dd"),
-        endDate: format(selectedDate, "yyyy-MM-dd"),
-      });
+        // Actualizar datos solo si usamos datos internos
+        if (!externalVisits) {
+          refetchEvents();
+          updateFilters({
+            startDate: selectedDateStr,
+            endDate: selectedDateStr,
+          });
+        }
+      }
     } catch (error) {
       console.error("Error al actualizar estado:", error);
       toast.error("No se pudo actualizar el estado de la visita");
@@ -150,21 +254,17 @@ export default function CalendarContainer({
   const handleDeleteVisit = async (visitId: string) => {
     try {
       if (onDeleteVisit) {
-        onDeleteVisit(visitId);
+        await onDeleteVisit(visitId);
       } else {
-        if (
-          confirm(
-            "¿Está seguro de que desea eliminar esta visita? Esta acción no se puede deshacer."
-          )
-        ) {
-          await deleteVisit(visitId);
-          toast.success("Visita eliminada correctamente");
+        await deleteVisit(visitId);
+        toast.success("Visita eliminada correctamente");
 
-          // Actualizar datos
+        // Actualizar datos solo si usamos datos internos
+        if (!externalVisits) {
           refetchEvents();
           updateFilters({
-            startDate: format(selectedDate, "yyyy-MM-dd"),
-            endDate: format(selectedDate, "yyyy-MM-dd"),
+            startDate: selectedDateStr,
+            endDate: selectedDateStr,
           });
         }
       }
@@ -175,15 +275,17 @@ export default function CalendarContainer({
   };
 
   // Mostrar error si hay alguno
-  if (eventsError || visitsError) {
-    const errorMessage = "Error al cargar los datos de visitas";
-    console.error(errorMessage, { eventsError, visitsError });
-    toast.error(errorMessage);
-  }
+  useEffect(() => {
+    if (eventsError || dayVisitsError) {
+      const errorMessage = "Error al cargar los datos de visitas";
+      console.error(errorMessage, { eventsError, dayVisitsError });
+      toast.error(errorMessage);
+    }
+  }, [eventsError, dayVisitsError]);
 
   // Determinar si hay carga en curso
   const isLoadingData =
-    externalLoading || eventsLoading || visitsLoading || operationsLoading;
+    externalLoading || eventsLoading || dayVisitsLoading || operationsLoading;
 
   return (
     <div className="space-y-4">
@@ -236,25 +338,7 @@ export default function CalendarContainer({
               </div>
             ) : (
               <CalendarComponent
-                visits={
-                  visits.length > 0
-                    ? visits
-                    : calendarEvents.map((event) => ({
-                        id: event.id,
-                        propertyId: event.property.id,
-                        propertyTitle: event.property.title,
-                        propertyImage: event.property.image,
-                        clientName: event.client.name,
-                        clientEmail: event.client.email,
-                        clientPhone: event.client.phone,
-                        date: new Date(event.start),
-                        time: format(new Date(event.start), "HH:mm"),
-                        type: event.type,
-                        status: event.status,
-                        notes: event.notes,
-                        agentId: event.agentId,
-                      }))
-                }
+                visits={monthVisits}
                 selectedDate={selectedDate}
                 onDateSelect={handleDateSelect}
                 currentMonth={currentMonth}
@@ -275,27 +359,38 @@ export default function CalendarContainer({
               })}
             </h3>
             {isLoadingData ? (
-              <div className="flex justify-center items-center h-32">
+              <div className="flex justify-center items-center h-[450px]">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-            ) : filteredVisits && filteredVisits.length > 0 ? (
-              <VisitList
-                visits={filteredVisits}
+            ) : selectedDayVisits.length > 0 ? (
+              <VisitsList
+                visits={selectedDayVisits}
                 onEditVisit={(visit) => handleEditVisit(visit.id)}
-                onUpdateStatus={(visit, status) =>
-                  handleUpdateVisitStatus(visit.id, status)
-                }
+                onUpdateStatus={handleUpdateVisitStatus}
                 onDeleteVisit={handleDeleteVisit}
                 isLoading={isLoadingData}
               />
             ) : (
-              <p className="text-center text-muted-foreground py-6">
-                No hay visitas programadas para esta fecha
-              </p>
+              <div className="h-[450px] flex items-center justify-center">
+                <p className="text-center text-muted-foreground">
+                  No hay visitas programadas para esta fecha
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Diálogo para crear/editar visitas - sólo si manejamos directamente las visitas */}
+      {!onAddVisit && (
+        <VisitDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          selectedDate={selectedDate}
+          existingVisit={visitToEdit}
+          onSave={handleSaveVisit}
+        />
+      )}
     </div>
   );
 }

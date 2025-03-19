@@ -1,7 +1,7 @@
 //src/components/admin/calendar/visit-dialog.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,15 +29,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, CalendarIcon, Clock, Loader2 } from "lucide-react";
+
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertCircle, CalendarIcon, Clock, Loader2, Check } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -72,9 +73,8 @@ const formSchema = z.object({
   clientPhone: z.string().min(6, {
     message: "Teléfono inválido",
   }),
-  clientId: z.string().optional(),
-  agentId: z.string().optional(),
   notes: z.string().optional(),
+  agentId: z.string().optional(),
 });
 
 // Opciones de horarios
@@ -103,6 +103,9 @@ const timeOptions = [
 ];
 
 // Componente principal
+// Estilos inline para el calendario ya que no podemos crear archivos CSS
+// Esto simula lo que haríamos con un archivo CSS externo
+
 export default function VisitDialog({
   open,
   onOpenChange,
@@ -117,13 +120,28 @@ export default function VisitDialog({
   onSave?: (visit: Visit) => void;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVerifyingConflicts, setIsVerifyingConflicts] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const calendarRef = useRef(null);
+  const [selectedProperty, setSelectedProperty] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [openPropertySelect, setOpenPropertySelect] = useState(false);
 
   // Usar el hook para verificar conflictos de horarios
-  const { checkConflict, checking: checkingConflict } = useVisitConflictCheck();
+  const { checkConflict } = useVisitConflictCheck();
 
   // Obtener propiedades desde el backend
   const { properties, isLoading: isLoadingProperties } = useProperties();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const filteredProperties = properties
+    ? properties.filter((property) =>
+        property.title.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
   // Crear formulario con valores por defecto
   const form = useForm<z.infer<typeof formSchema>>({
@@ -137,7 +155,6 @@ export default function VisitDialog({
       clientName: "",
       clientEmail: "",
       clientPhone: "",
-      clientId: "client-1", // Por defecto usamos el cliente 1
       agentId: "agent-001", // Agente por defecto
       notes: "",
     },
@@ -161,10 +178,20 @@ export default function VisitDialog({
         clientName: existingVisit.clientName,
         clientEmail: existingVisit.clientEmail,
         clientPhone: existingVisit.clientPhone,
-        clientId: "client-1", // Por ahora usamos valores fijos
         agentId: existingVisit.agentId || "agent-001",
         notes: existingVisit.notes || "",
       });
+
+      // Establecer la propiedad seleccionada para el selector con búsqueda
+      if (properties) {
+        const prop = properties.find((p) => p.id === existingVisit.propertyId);
+        if (prop) {
+          setSelectedProperty({
+            id: prop.id,
+            title: prop.title,
+          });
+        }
+      }
     } else {
       // Si estamos creando una nueva visita
       form.reset({
@@ -176,68 +203,90 @@ export default function VisitDialog({
         clientName: "",
         clientEmail: "",
         clientPhone: "",
-        clientId: "client-1",
         agentId: "agent-001",
         notes: "",
       });
+      setSelectedProperty(null);
     }
 
     // Limpiar errores de conflicto al abrir/cerrar el diálogo
     setConflictError(null);
-  }, [existingVisit, selectedDate, form, open]);
+  }, [existingVisit, selectedDate, form, open, properties]);
 
-  // Verificar conflictos cuando cambia la fecha, hora o propiedad
-  const watchPropertyId = form.watch("propertyId");
-  const watchDate = form.watch("date");
-  const watchTime = form.watch("time");
-
+  // Efecto para asegurar que el calendario se cierre al seleccionar una fecha
   useEffect(() => {
-    // Solo verificar si tenemos los 3 valores necesarios
-    if (!watchPropertyId || !watchDate || !watchTime) {
-      setConflictError(null);
-      return;
-    }
-
-    const checkForConflicts = async () => {
-      try {
-        const hasConflict = await checkConflict(
-          watchPropertyId,
-          watchDate,
-          watchTime,
-          existingVisit?.id
-        );
-
-        if (hasConflict) {
-          setConflictError(
-            "Ya existe una visita programada para esta propiedad en la fecha y hora seleccionadas."
-          );
-        } else {
-          setConflictError(null);
-        }
-      } catch (error) {
-        console.error("Error al verificar conflictos:", error);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        calendarRef.current &&
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        !(calendarRef.current as any).contains(event.target as Node) &&
+        calendarOpen
+      ) {
+        setCalendarOpen(false);
       }
     };
 
-    checkForConflicts();
-  }, [watchPropertyId, watchDate, watchTime, existingVisit?.id, checkConflict]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [calendarOpen]);
+
+  // Función para verificar conflictos
+  const verifyConflicts = async (
+    propertyId: string,
+    date: Date,
+    time: string,
+    visitId?: string
+  ): Promise<boolean> => {
+    setIsVerifyingConflicts(true);
+    try {
+      const hasConflict = await checkConflict(propertyId, date, time, visitId);
+
+      if (hasConflict) {
+        setConflictError(
+          "Ya existe una visita programada para esta propiedad en la fecha y hora seleccionadas."
+        );
+        return true;
+      } else {
+        setConflictError(null);
+        return false;
+      }
+    } catch (error) {
+      console.error("Error al verificar conflictos:", error);
+      // En caso de error, consideramos que hay un conflicto para prevenir problemas
+      setConflictError(
+        "No se pudo verificar la disponibilidad. Intente de nuevo."
+      );
+      return true;
+    } finally {
+      setIsVerifyingConflicts(false);
+    }
+  };
 
   // Manejar envío del formulario
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Verificar si hay conflictos
-    if (conflictError) {
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      // Obtener los datos de la propiedad seleccionada
-      const selectedProperty = properties.find(
-        (p) => p.id === values.propertyId
+      // Verificar conflictos antes de guardar
+      const hasConflict = await verifyConflicts(
+        values.propertyId,
+        values.date,
+        values.time,
+        existingVisit?.id
       );
 
-      if (!selectedProperty) {
+      // Si hay conflicto, detener el proceso
+      if (hasConflict) {
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Obtener los datos de la propiedad seleccionada
+      const propertyObj = properties?.find((p) => p.id === values.propertyId);
+
+      if (!propertyObj) {
         console.error("Propiedad no encontrada");
         setIsSubmitting(false);
         return;
@@ -247,8 +296,8 @@ export default function VisitDialog({
       const visitData: Visit = {
         id: existingVisit?.id || `v${Date.now()}`, // Generar ID único si es nueva visita
         propertyId: values.propertyId,
-        propertyTitle: selectedProperty.title,
-        propertyImage: selectedProperty.image,
+        propertyTitle: propertyObj.title,
+        propertyImage: propertyObj.image,
         clientName: values.clientName,
         clientEmail: values.clientEmail,
         clientPhone: values.clientPhone,
@@ -274,37 +323,8 @@ export default function VisitDialog({
     }
   };
 
-  // Información de clientes (hasta que tengamos una API de clientes)
-  const mockClients = [
-    {
-      id: "client-1",
-      name: "Carlos Rodríguez",
-      email: "carlos@example.com",
-      phone: "600123456",
-    },
-    {
-      id: "client-2",
-      name: "Laura Martínez",
-      email: "laura@example.com",
-      phone: "600789012",
-    },
-    {
-      id: "client-3",
-      name: "Miguel Sánchez",
-      email: "miguel@example.com",
-      phone: "600345678",
-    },
-  ];
-
-  // Detectar cuando se selecciona un cliente existente
-  const handleClientSelect = (clientId: string) => {
-    const selectedClient = mockClients.find((c) => c.id === clientId);
-    if (selectedClient) {
-      form.setValue("clientName", selectedClient.name);
-      form.setValue("clientEmail", selectedClient.email);
-      form.setValue("clientPhone", selectedClient.phone);
-    }
-  };
+  // Determinar si hay alguna operación de carga en curso
+  const isLoading = isLoadingProperties || isVerifyingConflicts || isSubmitting;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -322,41 +342,143 @@ export default function VisitDialog({
           </Alert>
         )}
 
+        {isVerifyingConflicts && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Verificando disponibilidad...</span>
+          </div>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Selección de Propiedad */}
+            {/* Selección de Propiedad con buscador */}
             <FormField
               control={form.control}
               name="propertyId"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Propiedad</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={isLoadingProperties || isSubmitting}
+                  <Popover
+                    open={openPropertySelect}
+                    onOpenChange={setOpenPropertySelect}
                   >
-                    <FormControl>
-                      <SelectTrigger>
-                        {isLoadingProperties ? (
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span>Cargando propiedades...</span>
-                          </div>
-                        ) : (
-                          <SelectValue placeholder="Selecciona una propiedad" />
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                          disabled={isLoading}
+                        >
+                          {isLoadingProperties ? (
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Cargando propiedades...</span>
+                            </div>
+                          ) : selectedProperty ? (
+                            selectedProperty.title
+                          ) : (
+                            "Selecciona una propiedad"
+                          )}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <FormField
+                        control={form.control}
+                        name="propertyId"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col p-4">
+                            <FormLabel>Propiedad Seleccionada</FormLabel>
+                            <Popover
+                              open={openPropertySelect}
+                              onOpenChange={setOpenPropertySelect}
+                            >
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className={cn(
+                                      "w-full justify-between",
+                                      !field.value && "text-muted-foreground"
+                                    )}
+                                    disabled={isLoading}
+                                  >
+                                    {isLoadingProperties ? (
+                                      <div className="flex items-center gap-2">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span>Cargando propiedades...</span>
+                                      </div>
+                                    ) : selectedProperty ? (
+                                      selectedProperty.title
+                                    ) : (
+                                      "Selecciona una propiedad"
+                                    )}
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-full p-0">
+                                <div className="p-2">
+                                  <Input
+                                    placeholder="Buscar propiedad..."
+                                    value={searchTerm}
+                                    onChange={(e) =>
+                                      setSearchTerm(e.target.value)
+                                    }
+                                    className="mb-2"
+                                  />
+                                  <div className="max-h-60 overflow-auto">
+                                    {filteredProperties.length === 0 ? (
+                                      <div className="text-center py-2 text-sm text-muted-foreground">
+                                        No se encontraron propiedades
+                                      </div>
+                                    ) : (
+                                      filteredProperties.map((property) => (
+                                        <div
+                                          key={property.id}
+                                          className={cn(
+                                            "flex items-center px-2 py-1.5 text-sm cursor-pointer rounded-sm hover:bg-accent hover:text-accent-foreground",
+                                            property.id === field.value &&
+                                              "bg-accent text-accent-foreground"
+                                          )}
+                                          onClick={() => {
+                                            form.setValue(
+                                              "propertyId",
+                                              property.id
+                                            );
+                                            setSelectedProperty({
+                                              id: property.id,
+                                              title: property.title,
+                                            });
+                                            setOpenPropertySelect(false);
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              property.id === field.value
+                                                ? "opacity-100"
+                                                : "opacity-0"
+                                            )}
+                                          />
+                                          {property.title}
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
                         )}
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {properties &&
-                        properties.map((property) => (
-                          <SelectItem key={property.id} value={property.id}>
-                            {property.title}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -370,7 +492,7 @@ export default function VisitDialog({
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Fecha</FormLabel>
-                    <Popover>
+                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
@@ -379,7 +501,8 @@ export default function VisitDialog({
                               "pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground"
                             )}
-                            disabled={isSubmitting}
+                            disabled={isLoading}
+                            onClick={() => setCalendarOpen(true)}
                           >
                             {field.value ? (
                               format(field.value, "PPP", { locale: es })
@@ -394,9 +517,19 @@ export default function VisitDialog({
                         <Calendar
                           mode="single"
                           selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
+                          onSelect={(date) => {
+                            if (date) {
+                              field.onChange(date);
+                              setCalendarOpen(false);
+                            }
+                          }}
+                          fromDate={new Date()}
+                          disabled={(date) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return date < today;
+                          }}
+                          locale={es}
                         />
                       </PopoverContent>
                     </Popover>
@@ -404,7 +537,6 @@ export default function VisitDialog({
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="time"
@@ -414,12 +546,12 @@ export default function VisitDialog({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      disabled={isSubmitting}
+                      disabled={isLoading}
                     >
                       <FormControl>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-fit min-w-[120px]">
                           <SelectValue placeholder="Selecciona hora" />
-                          <Clock className="h-4 w-4 opacity-50" />
+                          <Clock className="ml-2 h-4 w-4 opacity-50" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -447,7 +579,7 @@ export default function VisitDialog({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      disabled={isSubmitting}
+                      disabled={isLoading}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -475,7 +607,7 @@ export default function VisitDialog({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      disabled={isSubmitting}
+                      disabled={isLoading}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -495,39 +627,6 @@ export default function VisitDialog({
               />
             </div>
 
-            {/* Selección de Cliente Existente */}
-            <FormField
-              control={form.control}
-              name="clientId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cliente</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      handleClientSelect(value);
-                    }}
-                    defaultValue={field.value}
-                    disabled={isSubmitting}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona cliente o crea uno nuevo" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {mockClients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             {/* Datos del Cliente */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
@@ -537,7 +636,7 @@ export default function VisitDialog({
                   <FormItem>
                     <FormLabel>Nombre del Cliente</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled={isSubmitting} />
+                      <Input {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -551,7 +650,7 @@ export default function VisitDialog({
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" {...field} disabled={isSubmitting} />
+                      <Input type="email" {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -565,7 +664,7 @@ export default function VisitDialog({
                   <FormItem>
                     <FormLabel>Teléfono</FormLabel>
                     <FormControl>
-                      <Input type="tel" {...field} disabled={isSubmitting} />
+                      <Input type="tel" {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -585,7 +684,7 @@ export default function VisitDialog({
                       placeholder="Información adicional sobre la visita"
                       className="resize-none"
                       {...field}
-                      disabled={isSubmitting}
+                      disabled={isLoading}
                     />
                   </FormControl>
                   <FormMessage />
@@ -598,18 +697,20 @@ export default function VisitDialog({
                 variant="outline"
                 type="button"
                 onClick={() => onOpenChange(false)}
-                disabled={isSubmitting || checkingConflict}
+                disabled={isSubmitting || isVerifyingConflicts}
               >
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || checkingConflict || !!conflictError}
-              >
-                {isSubmitting || checkingConflict ? (
+              <Button type="submit" disabled={isLoading || !!conflictError}>
+                {isSubmitting ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {isSubmitting ? "Guardando..." : "Verificando..."}
+                    <span>Guardando...</span>
+                  </div>
+                ) : isVerifyingConflicts ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Verificando...</span>
                   </div>
                 ) : existingVisit ? (
                   "Actualizar Visita"

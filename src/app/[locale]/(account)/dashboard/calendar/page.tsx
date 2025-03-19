@@ -1,6 +1,6 @@
-//src/app/[locale]/(account)/dashboard/calendar/page.tsx
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarDays, List } from "lucide-react";
@@ -9,12 +9,16 @@ import VisitsList from "@/components/admin/calendar/visits-list";
 import { useFilteredVisits, useVisitOperations } from "@/hooks/useVisits";
 import { VisitStatus } from "@/types/visits";
 import { toast } from "sonner";
-
-// Metadata se define en una versión estática del archivo para RSC
-// export const metadata: Metadata = {
-//   title: "Gestión de Agenda | Panel de Administración Visitae",
-//   description: "Gestiona y programa visitas a propiedades de forma eficiente",
-// };
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function CalendarPage() {
   const router = useRouter();
@@ -26,7 +30,6 @@ export default function CalendarPage() {
     error: visitsError,
     updateFilters,
   } = useFilteredVisits({
-    // Ahora el tipo permite usar una cadena con valores separados por coma
     status: "pendiente,confirmada",
   });
 
@@ -37,18 +40,26 @@ export default function CalendarPage() {
     isLoading: operationsLoading,
   } = useVisitOperations();
 
+  // Estado para diálogo de confirmación de eliminación
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [visitToDelete, setVisitToDelete] = useState<string | null>(null);
+
   // Navegación para añadir visita
   const handleAddVisit = (date?: Date) => {
+    // Obtener el locale actual de la URL
+    const locale = window.location.pathname.split("/")[1];
     const params = new URLSearchParams();
     if (date) {
       params.set("date", date.toISOString().split("T")[0]);
     }
-    router.push(`/dashboard/calendar/new?${params.toString()}`);
+    router.push(`/${locale}/dashboard/calendar/new?${params.toString()}`);
   };
 
   // Navegación para editar visita
   const handleEditVisit = (visitId: string) => {
-    router.push(`/dashboard/calendar/visits/${visitId}/edit`);
+    // Obtener el locale actual de la URL
+    const locale = window.location.pathname.split("/")[1];
+    router.push(`/${locale}/dashboard/calendar/visits/${visitId}/edit`);
   };
 
   // Actualizar el estado de una visita
@@ -67,16 +78,27 @@ export default function CalendarPage() {
     }
   };
 
+  // Mostrar diálogo de confirmación para eliminar visita
+  const handleConfirmDelete = (visitId: string) => {
+    setVisitToDelete(visitId);
+    setDeleteDialogOpen(true);
+  };
+
   // Eliminar una visita
-  const handleDeleteVisit = async (visitId: string) => {
+  const handleDeleteVisit = async () => {
+    if (!visitToDelete) return;
+
     try {
-      await deleteVisit(visitId);
+      await deleteVisit(visitToDelete);
       toast.success("Visita eliminada correctamente");
       // Refrescar los datos
       updateFilters({});
     } catch (error) {
       console.error("Error al eliminar visita:", error);
       toast.error("No se pudo eliminar la visita");
+    } finally {
+      setDeleteDialogOpen(false);
+      setVisitToDelete(null);
     }
   };
 
@@ -92,6 +114,9 @@ export default function CalendarPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Gestión de Agenda</h1>
+        <p className="text-muted-foreground mt-2">
+          Programa y gestiona las visitas a propiedades
+        </p>
       </div>
 
       <Tabs defaultValue="calendar" className="space-y-4">
@@ -107,8 +132,12 @@ export default function CalendarPage() {
         </TabsList>
         <TabsContent value="calendar" className="space-y-4">
           <CalendarContainer
+            visits={visits || []}
             onAddVisit={handleAddVisit}
             onEditVisit={handleEditVisit}
+            onUpdateVisitStatus={handleUpdateVisitStatus}
+            onDeleteVisit={handleConfirmDelete}
+            isLoading={isLoading}
           />
         </TabsContent>
         <TabsContent value="list" className="space-y-4">
@@ -118,11 +147,34 @@ export default function CalendarPage() {
             onUpdateStatus={(visit, status) =>
               handleUpdateVisitStatus(visit.id, status)
             }
-            onDeleteVisit={handleDeleteVisit}
+            onDeleteVisit={handleConfirmDelete}
             isLoading={isLoading}
+            showDate={true}
           />
         </TabsContent>
       </Tabs>
+
+      {/* Diálogo de confirmación para eliminar visita */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente la
+              visita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteVisit}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

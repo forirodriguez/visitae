@@ -1,7 +1,6 @@
-//src/components/admin/calendar/calendar-component.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import {
   format,
   startOfMonth,
@@ -30,11 +29,9 @@ export default function CalendarComponent({
   onDateSelect,
   currentMonth = new Date(),
 }: CalendarComponentProps) {
-  // Estado para la matriz de días a mostrar
-  const [calendarDays, setCalendarDays] = useState<Date[][]>([]);
-
-  // Actualizar la matriz de días cuando cambia el mes actual
-  useEffect(() => {
+  // Usamos useMemo para evitar recálculos innecesarios
+  const { calendarDays, visitsByDay } = useMemo(() => {
+    // Generar la matriz de días
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
     const startDate = startOfWeek(monthStart, { locale: es });
@@ -53,40 +50,52 @@ export default function CalendarComponent({
       days = [];
     }
 
-    setCalendarDays(rows);
-  }, [currentMonth]);
+    // Agregar visitas por día para acceso rápido
+    const visitMap: Record<string, Visit[]> = {};
 
-  // Función para determinar el número de visitas en un día específico
-  const getVisitCountForDay = (day: Date): number => {
-    return visits.filter((visit) => {
+    visits.forEach((visit) => {
       const visitDate =
         visit.date instanceof Date ? visit.date : new Date(visit.date);
-      return isSameDay(day, visitDate);
-    }).length;
-  };
+      const dateKey = format(visitDate, "yyyy-MM-dd");
+      if (!visitMap[dateKey]) {
+        visitMap[dateKey] = [];
+      }
+      visitMap[dateKey].push(visit);
+    });
 
-  // Renderizar los días del calendario
-  const renderDays = () => {
-    const days = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-    return (
+    return { calendarDays: rows, visitsByDay: visitMap };
+  }, [currentMonth, visits]);
+
+  // Los días de la semana como constante
+  const daysOfWeek = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+  return (
+    <div className="w-full">
+      {/* Cabecera de días de la semana */}
       <div className="grid grid-cols-7 mb-2">
-        {days.map((day) => (
+        {daysOfWeek.map((day) => (
           <div key={day} className="text-center font-medium text-sm py-2">
             {day}
           </div>
         ))}
       </div>
-    );
-  };
 
-  // Renderizar las celdas del calendario
-  const renderCells = () => {
-    return (
+      {/* Celdas del calendario */}
       <div>
         {calendarDays.map((row, rowIndex) => (
           <div key={`row-${rowIndex}`} className="grid grid-cols-7">
             {row.map((day, dayIndex) => {
-              const visitCount = getVisitCountForDay(day);
+              const dateKey = format(day, "yyyy-MM-dd");
+              const dayVisits = visitsByDay[dateKey] || [];
+              const visitCount = dayVisits.length;
+
+              // Determinar si hay visitas por tipo
+              const hasPresencialVisits = dayVisits.some(
+                (v) => v.type === "presencial"
+              );
+              const hasVideoVisits = dayVisits.some(
+                (v) => v.type === "videollamada"
+              );
 
               return (
                 <div
@@ -112,7 +121,22 @@ export default function CalendarComponent({
 
                     {visitCount > 0 && (
                       <div className="mt-auto flex justify-center">
-                        <span className="visits-indicator">{visitCount}</span>
+                        <span
+                          className={cn(
+                            "visits-indicator",
+                            hasPresencialVisits &&
+                              !hasVideoVisits &&
+                              "bg-blue-100 text-blue-800",
+                            hasVideoVisits &&
+                              !hasPresencialVisits &&
+                              "bg-teal-100 text-teal-800",
+                            hasPresencialVisits &&
+                              hasVideoVisits &&
+                              "bg-purple-100 text-purple-800"
+                          )}
+                        >
+                          {visitCount}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -122,13 +146,6 @@ export default function CalendarComponent({
           </div>
         ))}
       </div>
-    );
-  };
-
-  return (
-    <div className="w-full">
-      {renderDays()}
-      {renderCells()}
     </div>
   );
 }
