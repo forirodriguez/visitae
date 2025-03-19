@@ -15,17 +15,21 @@ export const metadata: Metadata = {
 
 type ParamsType = Promise<{ locale: string }>;
 
-export default async function RootLayout(props: {
+export default async function RootLayout({
+  children,
+  params,
+}: {
   children: React.ReactNode;
   params: ParamsType;
 }) {
-  const { locale } = await props.params;
+  // Awaiting the params Promise
+  const { locale } = await params;
 
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={inter.className}>
         <QueryProvider>
-          <AuthProvider>{props.children}</AuthProvider>
+          <AuthProvider>{children}</AuthProvider>
         </QueryProvider>
       </body>
     </html>
