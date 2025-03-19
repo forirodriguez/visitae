@@ -7,6 +7,7 @@ import {
   endOfMonth,
   addMonths,
   subMonths,
+  isSameDay,
 } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -102,11 +103,12 @@ export default function CalendarContainer({
       agentId: event.agentId,
     }));
 
-  // Filtrar visitas para el día seleccionado si se proporcionan visitas externas
+  // Filtrar visitas para el día seleccionado usando isSameDay para mayor precisión
   const selectedDayVisits = externalVisits
     ? externalVisits.filter((visit) => {
-        const visitDate = new Date(visit.date);
-        return format(visitDate, "yyyy-MM-dd") === selectedDateStr;
+        const visitDate =
+          visit.date instanceof Date ? visit.date : new Date(visit.date);
+        return isSameDay(visitDate, selectedDate);
       })
     : dayVisits;
 
@@ -193,7 +195,7 @@ export default function CalendarContainer({
         toast.success("Visita actualizada correctamente");
       } else {
         // Añadir nueva visita
-        await createVisit({
+        const result = await createVisit({
           propertyId: visitData.propertyId,
           date: visitData.date.toISOString().split("T")[0], // Formato YYYY-MM-DD
           time: visitData.time,
@@ -203,14 +205,27 @@ export default function CalendarContainer({
           clientId: "client-1", // Asumiendo un valor por defecto para pruebas
           agentId: visitData.agentId,
         });
-        toast.success("Visita programada correctamente");
+
+        if (result && result.id) {
+          toast.success("Visita programada correctamente");
+        } else {
+          toast.warning("Visita guardada pero con información incompleta");
+        }
       }
 
       // Cerrar diálogo
       setDialogOpen(false);
 
-      // Actualizar datos
-      if (!externalVisits) {
+      // Actualizar datos - siempre refrescar para ver los cambios
+      if (onAddVisit || onEditVisit) {
+        // Si hay manejadores externos, debemos avisar que los datos podrían haber cambiado
+        // pero sin causar navegación
+        if (onUpdateVisitStatus) {
+          // Truco para forzar recarga de datos sin navegación
+          onUpdateVisitStatus(visitData.id, visitData.status);
+        }
+      } else {
+        // Usar lógica interna de actualización
         refetchEvents();
         updateFilters({
           startDate: selectedDateStr,
@@ -357,6 +372,10 @@ export default function CalendarContainer({
                 month: "long",
                 year: "numeric",
               })}
+              {/* Mostrar contador de visitas para depuración */}
+              <span className="text-xs text-muted-foreground">
+                ({selectedDayVisits.length})
+              </span>
             </h3>
             {isLoadingData ? (
               <div className="flex justify-center items-center h-[450px]">
@@ -381,16 +400,14 @@ export default function CalendarContainer({
         </Card>
       </div>
 
-      {/* Diálogo para crear/editar visitas - sólo si manejamos directamente las visitas */}
-      {!onAddVisit && (
-        <VisitDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          selectedDate={selectedDate}
-          existingVisit={visitToEdit}
-          onSave={handleSaveVisit}
-        />
-      )}
+      {/* Diálogo para crear/editar visitas */}
+      <VisitDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        selectedDate={selectedDate}
+        existingVisit={visitToEdit}
+        onSave={handleSaveVisit}
+      />
     </div>
   );
 }

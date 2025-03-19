@@ -1,4 +1,4 @@
-//src/components/admin/calendar/visit-dialog.tsx
+// src/components/admin/calendar/visit-dialog.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -29,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import {
   Popover,
   PopoverContent,
@@ -47,7 +46,7 @@ import { Visit } from "@/types/visits";
 import { useProperties } from "@/hooks/useProperties";
 import { useVisitConflictCheck } from "@/hooks/useVisits";
 
-// Esquema de validación para el formulario
+// Esquema de validación manteniendo los campos originales
 const formSchema = z.object({
   propertyId: z.string({
     required_error: "Selecciona una propiedad",
@@ -102,10 +101,6 @@ const timeOptions = [
   "19:30",
 ];
 
-// Componente principal
-// Estilos inline para el calendario ya que no podemos crear archivos CSS
-// Esto simula lo que haríamos con un archivo CSS externo
-
 export default function VisitDialog({
   open,
   onOpenChange,
@@ -117,7 +112,7 @@ export default function VisitDialog({
   onOpenChange: (open: boolean) => void;
   selectedDate: Date;
   existingVisit: Visit | null;
-  onSave?: (visit: Visit) => void;
+  onSave?: (visitData: Visit) => void;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifyingConflicts, setIsVerifyingConflicts] = useState(false);
@@ -150,8 +145,8 @@ export default function VisitDialog({
       propertyId: "",
       date: selectedDate || new Date(),
       time: "10:00",
-      type: "presencial",
-      status: "pendiente",
+      type: "presencial" as const,
+      status: "pendiente" as const,
       clientName: "",
       clientEmail: "",
       clientPhone: "",
@@ -169,6 +164,7 @@ export default function VisitDialog({
           ? existingVisit.date
           : new Date(existingVisit.date);
 
+      // Actualizar formulario con datos de visita existente
       form.reset({
         propertyId: existingVisit.propertyId,
         date: visitDate,
@@ -387,102 +383,101 @@ export default function VisitDialog({
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0">
-                      <FormField
-                        control={form.control}
-                        name="propertyId"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col p-4">
-                            <FormLabel>Propiedad Seleccionada</FormLabel>
-                            <Popover
-                              open={openPropertySelect}
-                              onOpenChange={setOpenPropertySelect}
-                            >
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    className={cn(
-                                      "w-full justify-between",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                    disabled={isLoading}
-                                  >
-                                    {isLoadingProperties ? (
-                                      <div className="flex items-center gap-2">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        <span>Cargando propiedades...</span>
-                                      </div>
-                                    ) : selectedProperty ? (
-                                      selectedProperty.title
-                                    ) : (
-                                      "Selecciona una propiedad"
-                                    )}
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-full p-0">
-                                <div className="p-2">
-                                  <Input
-                                    placeholder="Buscar propiedad..."
-                                    value={searchTerm}
-                                    onChange={(e) =>
-                                      setSearchTerm(e.target.value)
-                                    }
-                                    className="mb-2"
-                                  />
-                                  <div className="max-h-60 overflow-auto">
-                                    {filteredProperties.length === 0 ? (
-                                      <div className="text-center py-2 text-sm text-muted-foreground">
-                                        No se encontraron propiedades
-                                      </div>
-                                    ) : (
-                                      filteredProperties.map((property) => (
-                                        <div
-                                          key={property.id}
-                                          className={cn(
-                                            "flex items-center px-2 py-1.5 text-sm cursor-pointer rounded-sm hover:bg-accent hover:text-accent-foreground",
-                                            property.id === field.value &&
-                                              "bg-accent text-accent-foreground"
-                                          )}
-                                          onClick={() => {
-                                            form.setValue(
-                                              "propertyId",
-                                              property.id
-                                            );
-                                            setSelectedProperty({
-                                              id: property.id,
-                                              title: property.title,
-                                            });
-                                            setOpenPropertySelect(false);
-                                          }}
-                                        >
-                                          <Check
-                                            className={cn(
-                                              "mr-2 h-4 w-4",
-                                              property.id === field.value
-                                                ? "opacity-100"
-                                                : "opacity-0"
-                                            )}
-                                          />
-                                          {property.title}
-                                        </div>
-                                      ))
-                                    )}
-                                  </div>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="p-2">
+                        <Input
+                          placeholder="Buscar propiedad..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="mb-2"
+                        />
+                        <div className="max-h-60 overflow-auto">
+                          {filteredProperties.length === 0 ? (
+                            <div className="text-center py-2 text-sm text-muted-foreground">
+                              No se encontraron propiedades
+                            </div>
+                          ) : (
+                            filteredProperties.map((property) => (
+                              <div
+                                key={property.id}
+                                className={cn(
+                                  "flex items-center px-2 py-1.5 text-sm cursor-pointer rounded-sm hover:bg-accent hover:text-accent-foreground",
+                                  property.id === field.value &&
+                                    "bg-accent text-accent-foreground"
+                                )}
+                                onClick={() => {
+                                  form.setValue("propertyId", property.id);
+                                  setSelectedProperty({
+                                    id: property.id,
+                                    title: property.title,
+                                  });
+                                  setOpenPropertySelect(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    property.id === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {property.title}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
                     </PopoverContent>
                   </Popover>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Datos del Cliente */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="clientName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre del Cliente</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled={isLoading} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="clientEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" {...field} disabled={isLoading} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="clientPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono</FormLabel>
+                    <FormControl>
+                      <Input type="tel" {...field} disabled={isLoading} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Fecha y Hora */}
             <div className="grid grid-cols-2 gap-4">
@@ -621,51 +616,6 @@ export default function VisitDialog({
                         <SelectItem value="completada">Completada</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Datos del Cliente */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="clientName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre del Cliente</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled={isLoading} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="clientEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" {...field} disabled={isLoading} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="clientPhone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Teléfono</FormLabel>
-                    <FormControl>
-                      <Input type="tel" {...field} disabled={isLoading} />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarDays, List } from "lucide-react";
 import CalendarContainer from "@/components/admin/calendar/calendar-container";
 import VisitsList from "@/components/admin/calendar/visits-list";
 import { useFilteredVisits, useVisitOperations } from "@/hooks/useVisits";
-import { VisitStatus } from "@/types/visits";
+import { Visit, VisitStatus } from "@/types/visits";
 import { toast } from "sonner";
+import VisitDialog from "@/components/admin/calendar/visit-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,8 +21,6 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function CalendarPage() {
-  const router = useRouter();
-
   // Obtener todas las visitas pendientes y confirmadas
   const {
     visits,
@@ -35,31 +33,85 @@ export default function CalendarPage() {
 
   // Operaciones de visitas
   const {
+    createVisit,
+    updateVisit,
     updateVisitStatus,
     deleteVisit,
     isLoading: operationsLoading,
   } = useVisitOperations();
 
-  // Estado para diálogo de confirmación de eliminación
+  // Estado para diálogos
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [visitToDelete, setVisitToDelete] = useState<string | null>(null);
+  const [visitDialogOpen, setVisitDialogOpen] = useState(false);
+  const [visitToEdit, setVisitToEdit] = useState<Visit | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  // Navegación para añadir visita
+  // Manejar la creación de una nueva visita
   const handleAddVisit = (date?: Date) => {
-    // Obtener el locale actual de la URL
-    const locale = window.location.pathname.split("/")[1];
-    const params = new URLSearchParams();
     if (date) {
-      params.set("date", date.toISOString().split("T")[0]);
+      setSelectedDate(date);
     }
-    router.push(`/${locale}/dashboard/calendar/new?${params.toString()}`);
+    setVisitToEdit(null);
+    setVisitDialogOpen(true);
   };
 
-  // Navegación para editar visita
+  // Manejar la edición de una visita existente
   const handleEditVisit = (visitId: string) => {
-    // Obtener el locale actual de la URL
-    const locale = window.location.pathname.split("/")[1];
-    router.push(`/${locale}/dashboard/calendar/visits/${visitId}/edit`);
+    const visit = visits?.find((v) => v.id === visitId);
+    if (visit) {
+      setVisitToEdit(visit);
+      setVisitDialogOpen(true);
+    }
+  };
+
+  // Guardar visita (nueva o editada)
+  const handleSaveVisit = async (visitData: Visit) => {
+    try {
+      if (visitToEdit) {
+        // Actualizar visita existente
+        await updateVisit(visitData.id, {
+          propertyId: visitData.propertyId,
+          date: visitData.date.toISOString().split("T")[0], // Formato YYYY-MM-DD
+          time: visitData.time,
+          type: visitData.type,
+          status: visitData.status,
+          notes: visitData.notes,
+          clientId: "client-1", // Asumiendo un valor por defecto para pruebas
+          agentId: visitData.agentId,
+        });
+        toast.success("Visita actualizada correctamente");
+      } else {
+        // Añadir nueva visita
+        const result = await createVisit({
+          propertyId: visitData.propertyId,
+          date: visitData.date.toISOString().split("T")[0], // Formato YYYY-MM-DD
+          time: visitData.time,
+          type: visitData.type,
+          status: visitData.status,
+          notes: visitData.notes,
+          clientId: "client-1", // Asumiendo un valor por defecto para pruebas
+          agentId: visitData.agentId,
+        });
+
+        if (result && result.id) {
+          toast.success("Visita programada correctamente");
+        } else {
+          toast.warning("Visita guardada pero con información incompleta");
+        }
+      }
+
+      // Cerrar diálogo y refrescar datos
+      setVisitDialogOpen(false);
+
+      // Esperar un momento antes de refrescar los datos para dar tiempo al servidor
+      setTimeout(() => {
+        updateFilters({});
+      }, 500);
+    } catch (error) {
+      console.error("Error al guardar la visita:", error);
+      toast.error("No se pudo guardar la visita");
+    }
   };
 
   // Actualizar el estado de una visita
@@ -153,6 +205,15 @@ export default function CalendarPage() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Diálogo de visitas */}
+      <VisitDialog
+        open={visitDialogOpen}
+        onOpenChange={setVisitDialogOpen}
+        selectedDate={selectedDate}
+        existingVisit={visitToEdit}
+        onSave={handleSaveVisit}
+      />
 
       {/* Diálogo de confirmación para eliminar visita */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
