@@ -8,14 +8,16 @@ export default function Features() {
       title: "Agendamiento en tiempo real",
       description:
         "Programa visitas físicas o virtuales según la disponibilidad real de los agentes, con sincronización automática con Google Calendar.",
-      image: "/placeholder.svg?height=300&width=500&text=Calendario+de+Citas",
+      image:
+        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=500&h=300&auto=format&fit=crop",
     },
     {
       icon: <Map className="h-10 w-10 text-blue-800" />,
       title: "Mapas interactivos",
       description:
         "Visualiza propiedades en el mapa con puntos de interés cercanos como escuelas, hospitales, transporte público y comercios.",
-      image: "/placeholder.svg?height=300&width=500&text=Mapa+Interactivo",
+      image:
+        "https://images.unsplash.com/photo-1568605114967-8130f3a36994?q=80&w=500&h=300&auto=format&fit=crop",
     },
     {
       icon: <Calculator className="h-10 w-10 text-blue-800" />,
@@ -23,14 +25,15 @@ export default function Features() {
       description:
         "Calcula hipotecas, retorno de inversión y compara diferentes escenarios financieros para tomar decisiones informadas.",
       image:
-        "/placeholder.svg?height=300&width=500&text=Calculadora+Financiera",
+        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=500&h=300&auto=format&fit=crop",
     },
     {
       icon: <FileText className="h-10 w-10 text-blue-800" />,
       title: "Gestión documental",
       description:
         "Almacena, comparte y firma documentos digitalmente en un entorno seguro y centralizado para todas las partes.",
-      image: "/placeholder.svg?height=300&width=500&text=Gestión+Documental",
+      image:
+        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=500&h=300&auto=format&fit=crop",
     },
   ];
 
@@ -70,7 +73,7 @@ export default function Features() {
                 className={`relative h-[300px] overflow-hidden rounded-xl ${index % 2 === 1 ? "lg:col-start-1" : ""}`}
               >
                 <Image
-                  src={feature.image || "/placeholder.svg"}
+                  src={feature.image}
                   alt={feature.title}
                   fill
                   className="object-cover object-center"

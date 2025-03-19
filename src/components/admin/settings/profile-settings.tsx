@@ -125,10 +125,10 @@ export default function ProfileSettings() {
             <div className="md:w-1/3 flex flex-col items-center">
               <Avatar className="h-32 w-32">
                 <AvatarImage
-                  src="/placeholder.svg?height=128&width=128&text=JP"
+                  src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=987&auto=format&fit=crop"
                   alt="Foto de perfil"
                 />
-                <AvatarFallback>JP</AvatarFallback>
+                <AvatarFallback>CG</AvatarFallback>
               </Avatar>
 
               {isEditing && (

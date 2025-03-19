@@ -13,14 +13,15 @@ import {
   Train,
 } from "lucide-react";
 
-// Sample properties data (simplified version of the same properties)
+// Sample properties data with real images
 const mapProperties = [
   {
     id: "prop1",
     title: "Apartamento de lujo con vistas al mar",
     price: 450000,
     location: "Paseo Marítimo, Málaga",
-    image: "/placeholder.svg?height=80&width=120&text=Apartamento",
+    image:
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=120&h=80&auto=format&fit=crop",
     type: "venta",
     position: { top: "30%", left: "20%" },
   },
@@ -29,7 +30,8 @@ const mapProperties = [
     title: "Casa adosada con jardín privado",
     price: 320000,
     location: "Urbanización Los Pinos, Marbella",
-    image: "/placeholder.svg?height=80&width=120&text=Casa",
+    image:
+      "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=120&h=80&auto=format&fit=crop",
     type: "venta",
     position: { top: "45%", left: "35%" },
   },
@@ -38,7 +40,8 @@ const mapProperties = [
     title: "Ático dúplex con terraza panorámica",
     price: 550000,
     location: "Centro Histórico, Sevilla",
-    image: "/placeholder.svg?height=80&width=120&text=Atico",
+    image:
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=120&h=80&auto=format&fit=crop",
     type: "venta",
     position: { top: "60%", left: "15%" },
   },
@@ -47,7 +50,8 @@ const mapProperties = [
     title: "Piso reformado en zona exclusiva",
     price: 280000,
     location: "Barrio Salamanca, Madrid",
-    image: "/placeholder.svg?height=80&width=120&text=Piso",
+    image:
+      "https://images.unsplash.com/photo-1493809842364-78817add7ffb?q=80&w=120&h=80&auto=format&fit=crop",
     type: "venta",
     position: { top: "25%", left: "65%" },
   },
@@ -56,7 +60,8 @@ const mapProperties = [
     title: "Villa de lujo con piscina privada",
     price: 890000,
     location: "La Zagaleta, Marbella",
-    image: "/placeholder.svg?height=80&width=120&text=Villa",
+    image:
+      "https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=120&h=80&auto=format&fit=crop",
     type: "venta",
     position: { top: "70%", left: "40%" },
   },
@@ -156,7 +161,7 @@ export default function InteractiveMap() {
                   >
                     <div className="relative h-16 w-24 flex-shrink-0 rounded overflow-hidden">
                       <Image
-                        src={property.image || "/placeholder.svg"}
+                        src={property.image}
                         alt={property.title}
                         fill
                         className="object-cover"
@@ -187,13 +192,13 @@ export default function InteractiveMap() {
             className="lg:col-span-2 relative bg-gray-100 rounded-lg overflow-hidden border shadow-sm"
             style={{ height: "600px" }}
           >
-            {/* Map placeholder */}
+            {/* Map background with city/property view */}
             <div className="relative w-full h-full bg-blue-50">
               <Image
-                src="/placeholder.svg?height=600&width=800&text=Mapa+Interactivo"
+                src="https://images.unsplash.com/photo-1568605114967-8130f3a36994?q=80&w=800&h=600&auto=format&fit=crop&saturation=-50&brightness=95"
                 alt="Mapa interactivo"
                 fill
-                className="object-cover"
+                className="object-cover opacity-60"
               />
 
               {/* Property markers */}
@@ -226,7 +231,7 @@ export default function InteractiveMap() {
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 -translate-y-2 w-48 bg-white rounded-lg shadow-lg p-2 z-30">
                       <div className="relative h-24 w-full mb-2 rounded overflow-hidden">
                         <Image
-                          src={property.image || "/placeholder.svg"}
+                          src={property.image}
                           alt={property.title}
                           fill
                           className="object-cover"

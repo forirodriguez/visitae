@@ -44,7 +44,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
         {/* Imagen */}
         <div className="relative h-48 w-full overflow-hidden">
           <Image
-            src={property.image || "/placeholder.svg"}
+            src={property.image}
             alt={property.title}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"

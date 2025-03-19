@@ -348,6 +348,15 @@ function transformPropertyData(propertyData: any): PropertyDetail {
     ? propertyData.address.match(/\d{5}/)?.toString() || ""
     : "";
 
+  // Colección de imágenes reales para usar en caso de que falten imágenes
+  const realPropertyImages = [
+    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=800&h=600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=800&h=600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=800&h=600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?q=80&w=800&h=600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=800&h=600&auto=format&fit=crop",
+  ];
+
   return {
     id: propertyData.id,
     title: propertyData.title,
@@ -395,18 +404,16 @@ function transformPropertyData(propertyData: any): PropertyDetail {
       : [
           {
             id: "img1",
-            url:
-              propertyData.image ||
-              "/placeholder.svg?height=600&width=800&text=Sin+imagen",
+            url: propertyData.image || realPropertyImages[0],
             isPrimary: true,
             order: 0,
           },
-          // Agregamos más imágenes de ejemplo si no hay ninguna
+          // Agregamos más imágenes reales si no hay ninguna
           ...Array(4)
             .fill(0)
             .map((_, i) => ({
               id: `img${i + 2}`,
-              url: `/placeholder.svg?height=600&width=800&text=Imagen+${i + 2}`,
+              url: realPropertyImages[i + 1] || realPropertyImages[0],
               isPrimary: false,
               order: i + 1,
             })),

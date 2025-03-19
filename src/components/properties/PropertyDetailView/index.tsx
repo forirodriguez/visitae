@@ -147,10 +147,7 @@ export default function PropertyDetailView({
       {/* Imagen principal */}
       <div className="relative h-[400px] w-full rounded-xl overflow-hidden mb-8">
         <Image
-          src={
-            property.image ||
-            "/placeholder.svg?height=600&width=1200&text=Propiedad"
-          }
+          src={property.image}
           alt={property.title}
           fill
           className="object-cover"

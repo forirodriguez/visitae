@@ -104,7 +104,7 @@ export default function AdminSidebar() {
       <div className="flex h-16 items-center border-b px-4 dark:border-gray-800">
         <Link href={`/${locale}/dashboard`} className="flex items-center gap-2">
           <Image
-            src="/placeholder.svg?height=32&width=32"
+            src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=32&h=32&auto=format&fit=crop"
             alt="Visitae Logo"
             width={32}
             height={32}

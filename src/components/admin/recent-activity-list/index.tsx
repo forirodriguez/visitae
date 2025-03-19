@@ -24,11 +24,13 @@ const recentActivities: ActivityItem[] = [
     property: {
       id: "prop1",
       title: "Apartamento de lujo con vistas al mar",
-      image: "?height=40&width=40&text=P1",
+      image:
+        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=40&h=40&auto=format&fit=crop",
     },
     user: {
       name: "Carlos Rodríguez",
-      avatar: "/placeholder.svg?height=32&width=32&text=CR",
+      avatar:
+        "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=32&h=32&auto=format&fit=crop",
     },
     timestamp: "Hace 35 minutos",
   },
@@ -38,11 +40,13 @@ const recentActivities: ActivityItem[] = [
     property: {
       id: "prop2",
       title: "Casa adosada con jardín privado",
-      image: "/placeholder.svg?height=40&width=40&text=P2",
+      image:
+        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=40&h=40&auto=format&fit=crop",
     },
     user: {
       name: "Laura Martínez",
-      avatar: "/placeholder.svg?height=32&width=32&text=LM",
+      avatar:
+        "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=32&h=32&auto=format&fit=crop",
     },
     timestamp: "Hace 2 horas",
   },
@@ -52,11 +56,13 @@ const recentActivities: ActivityItem[] = [
     property: {
       id: "prop3",
       title: "Ático dúplex con terraza panorámica",
-      image: "/placeholder.svg?height=40&width=40&text=P3",
+      image:
+        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=40&h=40&auto=format&fit=crop",
     },
     user: {
       name: "Miguel Sánchez",
-      avatar: "/placeholder.svg?height=32&width=32&text=MS",
+      avatar:
+        "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=32&h=32&auto=format&fit=crop",
     },
     timestamp: "Hace 3 horas",
   },
@@ -66,11 +72,13 @@ const recentActivities: ActivityItem[] = [
     property: {
       id: "prop4",
       title: "Piso reformado en zona exclusiva",
-      image: "/placeholder.svg?height=40&width=40&text=P4",
+      image:
+        "https://images.unsplash.com/photo-1493809842364-78817add7ffb?q=80&w=40&h=40&auto=format&fit=crop",
     },
     user: {
       name: "Ana García",
-      avatar: "/placeholder.svg?height=32&width=32&text=AG",
+      avatar:
+        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=32&h=32&auto=format&fit=crop",
     },
     timestamp: "Hace 5 horas",
   },
@@ -80,11 +88,13 @@ const recentActivities: ActivityItem[] = [
     property: {
       id: "prop5",
       title: "Villa de lujo con piscina privada",
-      image: "/placeholder.svg?height=40&width=40&text=P5",
+      image:
+        "https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=40&h=40&auto=format&fit=crop",
     },
     user: {
       name: "Javier López",
-      avatar: "/placeholder.svg?height=32&width=32&text=JL",
+      avatar:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=32&h=32&auto=format&fit=crop",
     },
     timestamp: "Hace 8 horas",
   },

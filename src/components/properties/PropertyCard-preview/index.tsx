@@ -24,10 +24,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
     <Card className="overflow-hidden transition-all hover:shadow-md">
       <div className="aspect-video relative overflow-hidden">
         <Image
-          src={
-            property.image ||
-            "/placeholder.svg?height=300&width=400&text=Sin+Imagen"
-          }
+          src={property.image}
           alt={property.title}
           fill
           className="object-cover"

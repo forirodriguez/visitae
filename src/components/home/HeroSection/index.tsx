@@ -30,7 +30,7 @@ export default function HeroSection() {
           className="w-full h-full bg-cover bg-center"
           style={{
             backgroundImage:
-              "url('/placeholder.svg?height=600&width=1600&text=Propiedad+Premium')",
+              "url('https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=1600&h=600&auto=format&fit=crop')",
             filter: "brightness(0.7)",
           }}
         />

@@ -19,6 +19,10 @@ export default function PropertyCarousel({ images }: PropertyCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showFullscreen, setShowFullscreen] = useState(false);
 
+  // URL de imagen por defecto cuando no hay imágenes disponibles
+  const defaultImageUrl =
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=800&h=600&auto=format&fit=crop";
+
   const goToPrevious = () => {
     const isFirstImage = currentIndex === 0;
     const newIndex = isFirstImage ? images.length - 1 : currentIndex - 1;
@@ -40,10 +44,7 @@ export default function PropertyCarousel({ images }: PropertyCarouselProps) {
       <div className="relative aspect-[16/9] w-full overflow-hidden">
         <Image
           fill
-          src={
-            images[currentIndex]?.url ||
-            "/placeholder.svg?height=600&width=800&text=No+Image"
-          }
+          src={images[currentIndex]?.url || defaultImageUrl}
           alt={`Property image ${currentIndex + 1}`}
           className="h-full w-full object-cover"
         />
@@ -97,7 +98,10 @@ export default function PropertyCarousel({ images }: PropertyCarouselProps) {
           >
             <Image
               fill
-              src={image.url || "/placeholder.svg"}
+              src={
+                image.url ||
+                "https://images.unsplash.com/photo-1568605114967-8130f3a36994?q=80&w=64&h=64&auto=format&fit=crop"
+              }
               alt={`Thumbnail ${index + 1}`}
               className="h-full w-full object-cover"
             />
@@ -136,10 +140,7 @@ export default function PropertyCarousel({ images }: PropertyCarouselProps) {
 
             <Image
               fill
-              src={
-                images[currentIndex]?.url ||
-                "/placeholder.svg?height=600&width=800&text=No+Image"
-              }
+              src={images[currentIndex]?.url || defaultImageUrl}
               alt={`Property image ${currentIndex + 1}`}
               className="max-h-full max-w-full object-contain"
             />

@@ -53,6 +53,25 @@ import { Property, PropertyFilter } from "@/types/property";
 import { fetchProperties, deleteProperty } from "@/lib/api/client/properties";
 import { toast } from "sonner";
 
+// Array de imágenes reales para usar como fallback
+const fallbackImages = [
+  "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=80&h=60&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=80&h=60&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=80&h=60&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1493809842364-78817add7ffb?q=80&w=80&h=60&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=80&h=60&auto=format&fit=crop",
+];
+
+// Función para obtener una imagen fallback consistente basada en ID
+const getFallbackImage = (id: string) => {
+  // Usar el ID para seleccionar consistentemente una imagen
+  const hashCode = id.split("").reduce((acc, char) => {
+    return acc + char.charCodeAt(0);
+  }, 0);
+
+  return fallbackImages[hashCode % fallbackImages.length];
+};
+
 export default function PropertyListTable() {
   const router = useRouter();
   const [properties, setProperties] = useState<Property[]>([]);
@@ -592,7 +611,7 @@ export default function PropertyListTable() {
                   <TableCell>
                     <div className="relative h-12 w-16 overflow-hidden rounded-md">
                       <Image
-                        src={property.image || "/placeholder.svg"}
+                        src={property.image || getFallbackImage(property.id)}
                         alt={property.title}
                         fill
                         className="object-cover"

@@ -55,7 +55,7 @@ export default function AdminHeader() {
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar className="h-8 w-8">
                 <AvatarImage
-                  src="/placeholder.svg?height=32&width=32&text=AD"
+                  src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=32&h=32&auto=format&fit=crop"
                   alt="Admin"
                 />
                 <AvatarFallback>AD</AvatarFallback>

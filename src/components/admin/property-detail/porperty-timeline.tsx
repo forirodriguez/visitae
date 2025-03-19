@@ -15,6 +15,13 @@ interface PropertyTimelineProps {
   }[];
 }
 
+// Colección de avatares reales para usar como alternativa a placeholders
+const defaultAvatars = [
+  "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=32&h=32&auto=format&fit=crop", // Carlos
+  "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=32&h=32&auto=format&fit=crop", // María
+  "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=32&h=32&auto=format&fit=crop", // Juan
+];
+
 export default function PropertyTimeline({ timeline }: PropertyTimelineProps) {
   // Ordenar eventos por fecha (más recientes primero)
   const sortedTimeline = [...timeline].sort(
@@ -31,6 +38,13 @@ export default function PropertyTimeline({ timeline }: PropertyTimelineProps) {
     return "bg-gray-100 dark:bg-gray-800";
   };
 
+  // Función para obtener un avatar aleatorio pero consistente basado en el nombre
+  const getDefaultAvatar = (name: string) => {
+    // Usar la primera letra del nombre como un índice simple
+    const index = name.charCodeAt(0) % defaultAvatars.length;
+    return defaultAvatars[index];
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-1">
@@ -44,12 +58,12 @@ export default function PropertyTimeline({ timeline }: PropertyTimelineProps) {
         {sortedTimeline.map((event) => (
           <div key={event.id} className="flex gap-4">
             <div className="flex-shrink-0 mt-1">
-              <div className="relative">
+              <div className="relative h-8 w-8">
                 <Image
                   fill
-                  src={event.user.avatar || "/placeholder.svg"}
+                  src={event.user.avatar || getDefaultAvatar(event.user.name)}
                   alt={event.user.name}
-                  className="h-8 w-8 rounded-full"
+                  className="rounded-full object-cover"
                 />
                 <span
                   className={`absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white dark:border-gray-900 ${getActionColor(event.action)}`}

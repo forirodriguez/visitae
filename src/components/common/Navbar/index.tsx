@@ -27,7 +27,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           <Link href={`/${locale}`} className="flex items-center space-x-2">
             <Image
-              src="/placeholder.svg?height=32&width=32"
+              src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=32&h=32&auto=format&fit=crop"
               alt="Logo"
               width={32}
               height={32}

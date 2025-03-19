@@ -28,6 +28,25 @@ export default function GalleryTab({
 }: GalleryTabProps) {
   const [draggedImage, setDraggedImage] = useState<string | null>(null);
 
+  // Colección de imágenes reales para usar como respaldo
+  const fallbackImages = [
+    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=800&h=450&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=800&h=450&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=800&h=450&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?q=80&w=800&h=450&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=800&h=450&auto=format&fit=crop",
+  ];
+
+  // Obtener una imagen de respaldo basada en el índice
+  const getFallbackImage = (id: string) => {
+    // Usar alguna característica del ID para seleccionar una imagen consistentemente
+    const hashCode = id.split("").reduce((acc, char) => {
+      return acc + char.charCodeAt(0);
+    }, 0);
+
+    return fallbackImages[hashCode % fallbackImages.length];
+  };
+
   const handleImageUpload = (files: FileList) => {
     // En un caso real, aquí subiríamos las imágenes a un servidor
     // Por ahora, simulamos la subida creando URLs locales
@@ -142,7 +161,7 @@ export default function GalleryTab({
                     <div className="aspect-video relative">
                       <Image
                         fill
-                        src={image.url || "/placeholder.svg"}
+                        src={image.url || getFallbackImage(image.id)}
                         alt="Property"
                         className="w-full h-full object-cover"
                       />

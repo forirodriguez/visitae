@@ -2,6 +2,10 @@
 import { PropertyFormData } from "@/components/admin/property-form/property-form";
 import { Property } from "@/types/property";
 
+// Define una URL de imagen por defecto para usar cuando no hay imagen disponible
+const DEFAULT_PROPERTY_IMAGE =
+  "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2053&auto=format&fit=crop";
+
 /**
  * Convierte los datos del formulario al formato de Property para la API
  */
@@ -9,9 +13,12 @@ export function formDataToProperty(
   formData: PropertyFormData
 ): Omit<Property, "id"> {
   // Seleccionar la imagen principal o la primera disponible
+  // Si no hay imágenes, usar la imagen por defecto
   const mainImage =
     formData.images.find((img) => img.isPrimary)?.url ||
-    (formData.images.length > 0 ? formData.images[0].url : "/placeholder.svg");
+    (formData.images.length > 0
+      ? formData.images[0].url
+      : DEFAULT_PROPERTY_IMAGE);
 
   return {
     title: formData.title,
@@ -61,6 +68,9 @@ export function propertyToFormData(property: Property): PropertyFormData {
     city = parts.slice(1).join(",").trim();
   }
 
+  // Asegurar que siempre haya una URL de imagen válida
+  const imageUrl = getValidImageUrl(property.image);
+
   return {
     title: property.title,
     description: property.description,
@@ -87,7 +97,7 @@ export function propertyToFormData(property: Property): PropertyFormData {
     images: [
       {
         id: "main",
-        url: property.image,
+        url: imageUrl,
         isPrimary: true,
         order: 0,
       },
@@ -103,4 +113,29 @@ export function propertyToFormData(property: Property): PropertyFormData {
     visibility: "publica",
     tags: [],
   };
+}
+
+/**
+ * Verifica si una URL de imagen es válida
+ * @param url URL de la imagen a verificar
+ * @returns true si la URL es válida, false en caso contrario
+ */
+export function isValidImageUrl(url: string): boolean {
+  // Verificar si la URL existe
+  if (!url) return false;
+
+  // Verificar si no es una URL de placeholder
+  if (url.includes("placeholder.svg")) return false;
+
+  // Verificar si es una URL absoluta
+  return url.startsWith("http") || url.startsWith("https");
+}
+
+/**
+ * Obtiene una URL de imagen válida, con fallback a la imagen por defecto
+ * @param imageUrl URL de la imagen original
+ * @returns URL válida para la imagen
+ */
+export function getValidImageUrl(imageUrl?: string): string {
+  return isValidImageUrl(imageUrl || "") ? imageUrl! : DEFAULT_PROPERTY_IMAGE;
 }

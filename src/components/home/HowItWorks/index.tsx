@@ -103,7 +103,7 @@ export default function HowItWorks() {
 
             <div className="relative h-[200px] md:h-[300px] overflow-hidden rounded-xl">
               <Image
-                src="/placeholder.svg?height=300&width=500&text=Interfaz+de+Usuario+para+Compradores"
+                src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=500&h=300&auto=format&fit=crop"
                 alt="Interfaz para compradores"
                 fill
                 className="object-cover object-center"
@@ -141,7 +141,7 @@ export default function HowItWorks() {
 
             <div className="relative h-[200px] md:h-[300px] overflow-hidden rounded-xl">
               <Image
-                src="/placeholder.svg?height=300&width=500&text=Panel+de+Control+para+Agentes"
+                src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=500&h=300&auto=format&fit=crop"
                 alt="Panel para agentes"
                 fill
                 className="object-cover object-center"

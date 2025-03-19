@@ -19,7 +19,7 @@ export default async function AuthLayout(props: {
           <div className="flex justify-center mb-8">
             <Link href={`/${locale}`} className="flex items-center gap-2">
               <Image
-                src="/placeholder.svg?height=40&width=40"
+                src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=40&h=40&auto=format&fit=crop"
                 alt="Visitae Logo"
                 width={40}
                 height={40}

@@ -10,7 +10,7 @@ export default function Footer() {
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="flex items-center space-x-2">
               <Image
-                src="/placeholder.svg?height=32&width=32"
+                src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=40&h=40&auto=format&fit=crop"
                 alt="Logo"
                 width={32}
                 height={32}

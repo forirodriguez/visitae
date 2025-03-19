@@ -19,7 +19,8 @@ const testimonials: Testimonial[] = [
     id: 1,
     name: "Carlos Rodríguez",
     role: "Comprador en Madrid",
-    image: "/placeholder.svg?height=80&width=80&text=CR",
+    image:
+      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=80&h=80&auto=format&fit=crop",
     quote:
       "Gracias a Visitae encontré mi apartamento ideal en tiempo récord. La posibilidad de agendar visitas directamente con los agentes me ahorró muchísimo tiempo.",
     rating: 5,
@@ -28,7 +29,8 @@ const testimonials: Testimonial[] = [
     id: 2,
     name: "Laura Martínez",
     role: "Inversora inmobiliaria",
-    image: "/placeholder.svg?height=80&width=80&text=LM",
+    image:
+      "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=80&h=80&auto=format&fit=crop",
     quote:
       "Las herramientas de análisis de inversión me ayudaron a tomar decisiones informadas. He comprado ya tres propiedades a través de la plataforma.",
     rating: 5,
@@ -37,7 +39,8 @@ const testimonials: Testimonial[] = [
     id: 3,
     name: "Miguel Sánchez",
     role: "Comprador primerizo",
-    image: "/placeholder.svg?height=80&width=80&text=MS",
+    image:
+      "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=80&h=80&auto=format&fit=crop",
     quote:
       "Como comprador de primera vivienda, el proceso me parecía abrumador. La calculadora de hipoteca y el soporte del equipo hicieron todo mucho más sencillo.",
     rating: 4,
@@ -46,7 +49,8 @@ const testimonials: Testimonial[] = [
     id: 4,
     name: "Ana García",
     role: "Compradora en Barcelona",
-    image: "/placeholder.svg?height=80&width=80&text=AG",
+    image:
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=80&h=80&auto=format&fit=crop",
     quote:
       "El mapa interactivo con puntos de interés fue clave para elegir mi nuevo hogar. Pude encontrar una propiedad cerca de escuelas y transporte público.",
     rating: 5,
@@ -55,7 +59,8 @@ const testimonials: Testimonial[] = [
     id: 5,
     name: "Javier López",
     role: "Inversor internacional",
-    image: "/placeholder.svg?height=80&width=80&text=JL",
+    image:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=80&h=80&auto=format&fit=crop",
     quote:
       "Siendo inversor extranjero, la transparencia y facilidad de uso de la plataforma me dieron la confianza para invertir en España a distancia.",
     rating: 4,
@@ -155,7 +160,7 @@ export default function Testimonials() {
                     <div className="flex items-center mb-4">
                       <div className="relative h-12 w-12 rounded-full overflow-hidden">
                         <Image
-                          src={testimonial.image || "/placeholder.svg"}
+                          src={testimonial.image}
                           alt={testimonial.name}
                           fill
                           className="object-cover"
