@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
 
 export default function CalendarPage() {
   // Obtener todas las visitas pendientes y confirmadas
