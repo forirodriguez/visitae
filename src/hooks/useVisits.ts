@@ -110,7 +110,8 @@ export function useVisitConflictCheck() {
         err instanceof Error ? err.message : "Error al verificar conflictos"
       );
       console.error("Error al verificar conflictos:", err);
-      return true; // Asumir conflicto en caso de error
+      // Cambiar esto para permitir continuar
+      return false; // No asumir conflicto en caso de error
     } finally {
       setChecking(false);
     }

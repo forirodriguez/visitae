@@ -150,7 +150,7 @@ export default function VisitDialog({
       clientName: "",
       clientEmail: "",
       clientPhone: "",
-      agentId: "agent-001", // Agente por defecto
+      agentId: "agent-001",
       notes: "",
     },
   });
