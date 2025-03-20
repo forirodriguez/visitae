@@ -130,7 +130,7 @@ export default function DashboardPage() {
         // Actualizar visita existente
         await updateVisit(visitData.id, {
           propertyId: visitData.propertyId,
-          date: visitData.date.toISOString().split("T")[0], // Formato YYYY-MM-DD
+          date: format(visitData.date, "yyyy-MM-dd"),
           time: visitData.time,
           type: visitData.type,
           status: visitData.status,
@@ -147,7 +147,7 @@ export default function DashboardPage() {
         // Añadir nueva visita con validación de respuesta
         const result = await createVisit({
           propertyId: visitData.propertyId,
-          date: visitData.date.toISOString().split("T")[0],
+          date: format(visitData.date, "yyyy-MM-dd"),
           time: visitData.time,
           type: visitData.type,
           status: visitData.status,
