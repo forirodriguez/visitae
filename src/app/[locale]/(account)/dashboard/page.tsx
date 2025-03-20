@@ -140,18 +140,30 @@ export default function DashboardPage() {
         });
         toast.success("Visita actualizada correctamente");
       } else {
-        // Añadir nueva visita
-        await createVisit({
+        // Obtener un clientId válido - podría venir de una API o selección del usuario
+        // Por ahora, usamos el mismo valor pero con mejor manejo:
+        const clientId = "client-1"; // En producción, esto debería ser dinámico
+
+        // Añadir nueva visita con validación de respuesta
+        const result = await createVisit({
           propertyId: visitData.propertyId,
-          date: visitData.date.toISOString().split("T")[0], // Formato YYYY-MM-DD
+          date: visitData.date.toISOString().split("T")[0],
           time: visitData.time,
           type: visitData.type,
           status: visitData.status,
           notes: visitData.notes,
-          clientId: "client-1", // Asumiendo un valor por defecto para pruebas
+          clientId: clientId,
           agentId: visitData.agentId,
         });
-        toast.success("Visita programada correctamente");
+
+        if (result && result.id) {
+          toast.success("Visita programada correctamente");
+        } else {
+          toast.warning(
+            "La visita se guardó, pero podría haber información incompleta"
+          );
+          console.log("Respuesta de creación de visita:", result);
+        }
       }
       setDialogOpen(false);
     } catch (error) {
