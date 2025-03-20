@@ -7,7 +7,6 @@ import {
   endOfMonth,
   addMonths,
   subMonths,
-  isSameDay,
 } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -106,9 +105,15 @@ export default function CalendarContainer({
   // Filtrar visitas para el día seleccionado usando isSameDay para mayor precisión
   const selectedDayVisits = externalVisits
     ? externalVisits.filter((visit) => {
-        const visitDate =
-          visit.date instanceof Date ? visit.date : new Date(visit.date);
-        return isSameDay(visitDate, selectedDate);
+        // Formatear ambas fechas como yyyy-MM-dd para comparar solo por día
+        const visitDateStr =
+          visit.date instanceof Date
+            ? format(visit.date, "yyyy-MM-dd")
+            : format(new Date(visit.date), "yyyy-MM-dd");
+        const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
+
+        // Comparar los strings de fecha
+        return visitDateStr === selectedDateStr;
       })
     : dayVisits;
 
