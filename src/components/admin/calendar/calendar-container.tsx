@@ -103,16 +103,39 @@ export default function CalendarContainer({
     }));
 
   // Filtrar visitas para el día seleccionado usando isSameDay para mayor precisión
+  // Filtrar visitas para el día seleccionado - SOLUCIÓN CORREGIDA Y TIPADA
   const selectedDayVisits = externalVisits
     ? externalVisits.filter((visit) => {
-        // Formatear ambas fechas como yyyy-MM-dd para comparar solo por día
-        const visitDateStr =
-          visit.date instanceof Date
-            ? format(visit.date, "yyyy-MM-dd")
-            : format(new Date(visit.date), "yyyy-MM-dd");
+        // Extraer la fecha de la visita como string YYYY-MM-DD
+        let visitDateStr: string;
+
+        if (visit.date) {
+          // Manejar el campo date del tipo Visit
+          if (visit.date instanceof Date) {
+            visitDateStr = format(visit.date, "yyyy-MM-dd");
+          } else {
+            // Si es string (ISO date string) o cualquier otro formato
+            const visitDate = new Date(visit.date);
+            visitDateStr = format(visitDate, "yyyy-MM-dd");
+          }
+        } else {
+          // Fallback - esto no debería ocurrir si todas las visitas tienen date
+          console.warn("Visita sin fecha:", visit);
+          return false;
+        }
+
+        // Formatear la fecha seleccionada para comparar
         const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
 
-        // Comparar los strings de fecha
+        // Para depuración
+        console.log("Comparando fechas:", {
+          visita: visit.id,
+          fechaVisita: visitDateStr,
+          fechaSeleccionada: selectedDateStr,
+          coinciden: visitDateStr === selectedDateStr,
+        });
+
+        // Comparar las fechas como strings
         return visitDateStr === selectedDateStr;
       })
     : dayVisits;
